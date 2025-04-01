@@ -24,7 +24,6 @@ async def poke_user(interaction: lib.discord.Interaction, user: lib.discord.Memb
 	if user.voice and user.voice.channel and user.voice.channel == command_user.voice.channel:
 		await interaction.response.send_message(f"{user.mention} is already in your voice channel!", ephemeral=True)
 		return
-
 	await command_user.voice.channel.send(f"{command_user.mention} has poked {user.mention} to join this voice channel!")
 	await interaction.response.send_message(f"{user.mention} has been poked to join your voice channel!", ephemeral=True)
 	invite = await command_user.voice.channel.create_invite(max_uses=1, unique=True)
