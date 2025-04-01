@@ -3,13 +3,12 @@ DESCRIPTION: Debugging functions reside here
 """
 #pylint: disable=useless-parent-delegation
 from ..common.libraries import (
-	discord, os, commands, threading, traceback, sys, time,
-	psutil, asyncio, requests, json, logging, START_TIME, 
-	GITHUB_TOKEN
+	discord, os, commands, threading, traceback, sys, time, psutil, asyncio, requests, json, logging, START_TIME, GITHUB_TOKEN
 )
 from ..common.generalfunctions import GeneralFunctions
 
 logger = GeneralFunctions.setup_logger("diagnostic")
+
 
 class ReportBugModel(discord.ui.Modal, title="Report Bug"):
 	"""
@@ -19,9 +18,11 @@ class ReportBugModel(discord.ui.Modal, title="Report Bug"):
 
 	def __init__(self):
 		super().__init__()
-	
+
 	bug_title = discord.ui.TextInput(label="Bug Title", placeholder="Enter Bug Title", required=True)
-	bug_description = discord.ui.TextInput(placeholder="Enter a detailed description of the bug", label="Bug Description", required=True)
+	bug_description = discord.ui.TextInput(
+		placeholder="Enter a detailed description of the bug", label="Bug Description", required=True
+	)
 
 	async def on_submit(self, interaction: discord.Interaction):
 		"""
@@ -36,8 +37,8 @@ class ReportBugModel(discord.ui.Modal, title="Report Bug"):
 		issue_body = f"Bug report: {bug_description}\n\nSubmitted by: {author}\nServer: {server}"
 		payload = {"title": bug_title, "body": issue_body, "labels": ["bug"]}
 
-		repository = "DollarDiscordBot"
-		owner = "aaronrai24"
+		repository = "dollar-discord-bot"
+		owner = "aaron-rai"
 		access_token = GITHUB_TOKEN
 
 		url = f"https://api.github.com/repos/{owner}/{repository}/issues"
@@ -62,6 +63,7 @@ class ReportBugModel(discord.ui.Modal, title="Report Bug"):
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
+
 class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
 	"""
 	DESCRIPTION: Creates Feature Request Model
@@ -72,8 +74,10 @@ class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
 		super().__init__()
 
 	feature_title = discord.ui.TextInput(label="Feature Title", placeholder="Enter Feature Title", required=True)
-	feature_description = discord.ui.TextInput(placeholder="Enter a detailed description of the feature", label="Feature Description", required=True)
- 
+	feature_description = discord.ui.TextInput(
+		placeholder="Enter a detailed description of the feature", label="Feature Description", required=True
+	)
+
 	async def on_submit(self, interaction: discord.Interaction):
 		"""
 		DESCRIPTION: Fires on submit of Feature Request Model
@@ -83,12 +87,12 @@ class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
 		feature_description = self.feature_description.value
 		author = interaction.user
 		server = interaction.guild
-		
+
 		issue_body = f"Feature request: {feature_description}\n\nSubmitted by: {author}\nServer: {server}"
 		payload = {"title": feature_title, "body": issue_body, "labels": ["enhancement"]}
 
-		repository = "DollarDiscordBot"
-		owner = "aaronrai24"
+		repository = "dollar-discord-bot"
+		owner = "aaron-rai"
 		access_token = GITHUB_TOKEN
 
 		url = f"https://api.github.com/repos/{owner}/{repository}/issues"
@@ -103,7 +107,7 @@ class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
 		else:
 			await interaction.response.send_message("Failed to add feature request to GitHub issues.", ephemeral=True)
 			logger.error(f"Failed to add feature request to GitHub issues: {response.text}")
-	
+
 	async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
 		"""
 		DESCRIPTION: Fires on error of Settings Modal
@@ -113,17 +117,20 @@ class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
+
 class HelpView(discord.ui.View):
 	"""
 	DESCRIPTION: Creates Help View
 	PARAMETERS: discord.ui.View - Discord View
 	"""
+
 	def __init__(self):
 		super().__init__()
 		self.add_item(MyButton(label="Music", style=discord.ButtonStyle.green, custom_id="music"))
 		# self.add_item(MyButton(label="Game", style=discord.ButtonStyle.blurple, custom_id="game")) #TODO: Fix Game Commands and uncomment
 		self.add_item(MyButton(label="Context Menu", style=discord.ButtonStyle.blurple, custom_id="context"))
 		self.add_item(MyButton(label="Slash", style=discord.ButtonStyle.red, custom_id="slash"))
+
 
 class MyButton(discord.ui.Button):
 	"""
@@ -160,11 +167,13 @@ class MyButton(discord.ui.Button):
 		except Exception as e:
 			logger.error(f"Failed to send commands: {e}")
 
+
 class Debugging(commands.Cog):
 	"""
 	DESCRIPTION: Creates Debugging Class
 	PARAMETERS: commands.Bot - Discord Commands
 	"""
+
 	def __init__(self, bot):
 		self.bot = bot
 
@@ -273,7 +282,7 @@ class Debugging(commands.Cog):
 		with open(log_file_path, "rb") as file:
 			log_file = discord.File(file, filename=log_file_name)
 			await channel.send(file=log_file)
-	
+
 	@commands.command()
 	@commands.is_owner()
 	async def logging(self, ctx, level):
@@ -313,6 +322,7 @@ class Debugging(commands.Cog):
 			await self.bot.close()
 		except Exception as e:
 			logger.error(f"An error occured during shutdown {e}")
+
 
 async def setup(bot):
 	await bot.add_cog(Debugging(bot))

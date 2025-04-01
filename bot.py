@@ -10,20 +10,17 @@ import functions.common.libraries as lib
 lib.load_dotenv()
 
 exts: list = [
-		"functions.diagnostic.debugging", 
-		"functions.game.gamecommands",
-		"functions.music.musiccommands",
-		"functions.admin.admin",
-		"functions.queries.queries",
-		"functions.diagnostic.settings",
-		"functions.notifications.push_notifications"
-	]
+	"functions.diagnostic.debugging", "functions.game.gamecommands", "functions.music.musiccommands", "functions.admin.admin",
+	"functions.queries.queries", "functions.diagnostic.settings", "functions.notifications.push_notifications"
+]
+
 
 class UnfilteredBot(lib.commands.Bot):
 	"""
 	DESCRIPTION: Creates UnfilteredBot, loads exts, connects to db
 	PARAMETERS: commands.Bot - Discord Commands
 	"""
+
 	async def process_commands(self, message):
 		ctx = await self.get_context(message)
 		await self.invoke(ctx)
@@ -57,6 +54,7 @@ class UnfilteredBot(lib.commands.Bot):
 
 	mydb = GeneralFunctions.connect_to_database()
 
+
 client = UnfilteredBot(command_prefix="!", intents=lib.discord.Intents.all(), help_command=None)
 
 logger = GeneralFunctions.setup_logger("dollar")
@@ -68,27 +66,28 @@ LAVALINK_TOKEN = lib.os.getenv("LAVALINK_TOKEN")
 push_notifications = PushNotifications(UnfilteredBot)
 queries = Queries(UnfilteredBot)
 
+
 async def connect_nodes():
 	"""
 	DESCRIPTION: Connect to Wavelink Node
 	"""
 	await client.wait_until_ready()
 	#NOTE: Connect to Wavelink
-	nodes = [lib.wavelink.Node(
-				uri="http://lavalink:2333", 
-				password=LAVALINK_TOKEN, 
-				identifier="MAIN", 
-				retries=None, 
-				heartbeat=60, 
-				inactive_player_timeout=600
-			)]
+	nodes = [
+		lib.wavelink.Node(
+			uri="http://lavalink:2333", password=LAVALINK_TOKEN, identifier="MAIN", retries=None, heartbeat=60,
+			inactive_player_timeout=600
+		)
+	]
 	await lib.wavelink.Pool.connect(nodes=nodes, client=client, cache_capacity=100)
 	logger.info(f"Node: <{nodes}> is ready")
-	await client.change_presence(activity=lib.discord.Game(name=" All The Hits! | /help"))
+	await client.change_presence(activity=lib.discord.Game(name=" 🎶Nonstop Bangers! | /help"))
 	logger.info("=== Dollar is ready ===")
+
 
 #------------------------------------------------------------------------------------------------
 # Tasks
+
 
 @lib.tasks.loop(seconds=60)
 async def validate_db():
@@ -97,8 +96,10 @@ async def validate_db():
 	"""
 	await GeneralFunctions.validate_connection(UnfilteredBot.mydb)
 
+
 #------------------------------------------------------------------------------------------------
 # Client Events
+
 
 @client.event
 async def on_ready():
@@ -107,11 +108,18 @@ async def on_ready():
 	"""
 	client.loop.create_task(connect_nodes())
 	validate_db.start()
-	await GeneralFunctions.send_patch_notes(client)
+
+	if lib.SEND_PATCH_NOTES:
+		await GeneralFunctions.send_patch_notes(client)
+	else:
+		logger.warning("Skipped patch notes!")
+
 	for guild in client.guilds:
 		lib.guild_text_channels[str(guild)] = queries.get_guilds_preferred_text_channel(str(guild))
 		lib.guild_voice_channels[str(guild)] = queries.get_guilds_preferred_voice_channel(str(guild))
+
 	logger.info(f"Cached text and voice channels, text: {lib.guild_text_channels}, voice: {lib.guild_voice_channels}")
+
 
 @client.event
 async def on_scheduled_event_create(event):
@@ -121,6 +129,7 @@ async def on_scheduled_event_create(event):
 	"""
 	logger.info(f"The event [{event.name}] in was created in {event.guild}")
 
+
 @client.event
 async def on_scheduled_event_delete(event):
 	"""
@@ -128,6 +137,7 @@ async def on_scheduled_event_delete(event):
 	PARAMETERS: event - Event
 	"""
 	logger.info(f"The event [{event.name}] in was cancelled in {event.guild}")
+
 
 @client.event
 async def on_scheduled_event_update(before, after):
@@ -150,8 +160,10 @@ async def on_scheduled_event_update(before, after):
 			mentioned_users.append(user.mention)
 			logger.info(f"{user} is interested, allowing them to connect to {channel}")
 		mention_string = " ".join(mentioned_users)
-		await channel.send(f'''The event, {after.name} has started!
-						   {mention_string}, you can now join the voice channel.''')
+		await channel.send(
+			f'''The event, {after.name} has started!
+						   {mention_string}, you can now join the voice channel.'''
+		)
 		await channel.set_permissions(channel.guild.default_role, connect=False)
 	elif start == "EventStatus.active" and current == "EventStatus.completed":
 		#NOTE: Event has completed
@@ -159,6 +171,7 @@ async def on_scheduled_event_update(before, after):
 		await channel.edit(sync_permissions=True)
 		await channel.set_permissions(channel.guild.default_role, connect=True)
 		logger.info(f"Reset channel permissions and granted access to {channel} for all users")
+
 
 @client.event
 async def on_scheduled_event_user_add(event, user):
@@ -169,6 +182,7 @@ async def on_scheduled_event_user_add(event, user):
 	"""
 	logger.info(f"{user} is interested in [{event.name}] in {event.guild}")
 
+
 @client.event
 async def on_scheduled_event_user_remove(event, user):
 	"""
@@ -177,6 +191,7 @@ async def on_scheduled_event_user_remove(event, user):
 				user - Discord User
 	"""
 	logger.info(f"{user} is now uninterested in the event [{event.name}] in {event.guild}")
+
 
 @client.event
 async def on_guild_join(guild):
@@ -192,6 +207,7 @@ async def on_guild_join(guild):
 	await guild.owner.send("Thanks for adding me to your server! Please use `/dollarsettings`, to configure Dollar to your discord.")
 	await guild.owner.send("Additionally use `/userinformation` to update your user information(not required).")
 
+
 @client.event
 async def on_guild_remove(guild):
 	"""
@@ -204,6 +220,7 @@ async def on_guild_remove(guild):
 	msg = f"Removed from {guild.name}, any data associated with this guild has been removed. If im missing features please alert my devs using `/featurerequest`"
 	await owner.send(msg)
 	logger.info(f"Left guild: {guild.name} ({guild.id}), owner: {guild.owner}")
+
 
 @client.event
 async def on_member_join(member):
@@ -224,6 +241,7 @@ async def on_member_join(member):
 		except lib.discord.HTTPException:
 			logger.error(f"Could not send message to {channel.name} in {guild.name}. HTTP exception occurred.")
 
+
 @client.event
 async def on_member_remove(member):
 	"""
@@ -243,6 +261,7 @@ async def on_member_remove(member):
 			logger.warning(f"Could not send message to {channel.name} in {guild.name}. Missing permissions.")
 		except lib.discord.HTTPException:
 			logger.error(f"Could not send message to {channel.name} in {guild.name}. HTTP exception occurred.")
+
 
 @client.event
 async def on_raw_reaction_add(payload):
@@ -284,9 +303,12 @@ async def on_raw_reaction_add(payload):
 			queries.remove_game_subscription(user_name, game_name)
 			await payload.member.send(f"Unsubscribed from {game_name} notifications!")
 		else:
-			await payload.member.send("An error occurred while unsubscribing from notifications. Please report this bug using /reportbug")
+			await payload.member.send(
+				"An error occurred while unsubscribing from notifications. Please report this bug using /reportbug"
+			)
 			logger.error(f"User {user_name} or game {game_name} does not exist in database")
-	
+
+
 @client.event
 async def on_message(message):
 	"""
@@ -303,10 +325,10 @@ async def on_message(message):
 	if isinstance(message.channel, lib.discord.channel.DMChannel) and message.author != client.user:
 		logger.info(f"{author} sent a DM to Dollar")
 		msg = '''Checkout this readme:
-		(https://github.com/aaronrai24/DollarDiscordBot/blob/main/README.md)'''
+		(https://github.com/aaron-rai/dollar-discord-bot/blob/main/README.md)'''
 		await GeneralFunctions.send_embed("Welcome to Dollar", "dollar.png", msg, message.author)
 
-	#NOTE: Game update notifications in #patches in mfDiscord 
+	#NOTE: Game update notifications in #patches in mfDiscord
 	if str(message.channel.id) == str(lib.PATCHES_CHANNEL):
 		try:
 			embed_title = str(message.embeds[0].author.name)
@@ -333,6 +355,7 @@ async def on_message(message):
 			await author.send("Please use the commands channel to enter commands, thanks!")
 		await message.delete(delay=1)
 
+
 @client.event
 async def on_voice_state_update(member, before, after):
 	"""
@@ -343,10 +366,10 @@ async def on_voice_state_update(member, before, after):
 	"""
 	guild = member.guild
 	join_channel = AutoChannelCreation.get_join_channel(guild)
-	
+
 	if not join_channel:
 		return
-	
+
 	if before.channel is None and after.channel:
 		#NOTE: User joined channel
 		logger.info(f"{member} joined {after.channel} in {guild}")
@@ -369,6 +392,7 @@ async def on_voice_state_update(member, before, after):
 			logger.info(f"{member} left {before.channel} in {guild}")
 			await AutoChannelCreation.handle_channel_leave(before.channel)
 
+
 @client.event
 async def on_command_error(ctx, error):
 	"""
@@ -377,7 +401,7 @@ async def on_command_error(ctx, error):
 				error - Exception
 	"""
 	error_type = type(error)
-	
+
 	if error_type in lib.ERROR_MAPPING:
 		title, log_message = lib.ERROR_MAPPING[error_type]
 		await GeneralFunctions.send_embed_error(title, str(error), ctx)
@@ -386,5 +410,6 @@ async def on_command_error(ctx, error):
 		msg = "An unexpected error occurred while processing your command. Please use /reportbug."
 		await GeneralFunctions.send_embed_error("Unexpected Error", msg, ctx)
 		logger.exception("Unexpected error occurred", exc_info=error)
+
 
 client.run(DISCORD_TOKEN)

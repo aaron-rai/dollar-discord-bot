@@ -2,21 +2,19 @@
 DESCRIPTION: Queries for the database reside here
 """
 #pylint: disable=not-callable
-from ..common.libraries import(
-	commands, wraps, ProgrammingError, IntegrityError, 
-	DatabaseError, Error
-)
+from ..common.libraries import (commands, wraps, ProgrammingError, IntegrityError, DatabaseError, Error)
 
 from ..common.generalfunctions import GeneralFunctions
 
 logger = GeneralFunctions.setup_logger("queries")
+
 
 class Queries(commands.Cog):
 	"""
 	DESCRIPTION: Creates GameCommands class
 	PARAMETERS: commands.Bot - Discord Commands
 	"""
-	
+
 	def __init__(self, bot):
 		self.bot = bot
 		self.mydb = bot.mydb
@@ -26,6 +24,7 @@ class Queries(commands.Cog):
 		DESCRIPTION: Decorator to handle exceptions in database queries
 		PARAMETERS: func (obj) - Function to be wrapped
 		"""
+
 		@wraps(func)
 		def wrapper(*args, **kwargs):
 			try:
@@ -38,6 +37,7 @@ class Queries(commands.Cog):
 				logger.error(f"Database error: {err}")
 			except Error as err:
 				logger.error(f"General error: {err}")
+
 		return wrapper
 
 	@handle_exceptions
@@ -60,7 +60,7 @@ class Queries(commands.Cog):
 		)
 		self.mydb.commit()
 		logger.debug("Query to add user executed")
-	
+
 	@handle_exceptions
 	def check_if_user_exists(self, user_name):
 		"""
@@ -89,7 +89,7 @@ class Queries(commands.Cog):
 		cursor.execute("INSERT INTO games (game_name) VALUES (%s)", (game_name,))
 		self.mydb.commit()
 		logger.debug("Game inserted into database")
-	
+
 	@handle_exceptions
 	def check_if_game_exists(self, game_name):
 		"""
@@ -104,7 +104,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to check if game exists executed")
 		return result
-	
+
 	@handle_exceptions
 	def add_game_subscription(self, user_name, game_name):
 		"""
@@ -182,7 +182,7 @@ class Queries(commands.Cog):
 		cursor.execute("UPDATE users SET home_address = %s WHERE username = %s", (home_address, user_name))
 		self.mydb.commit()
 		logger.debug("Query to update users home address executed")
-	
+
 	@handle_exceptions
 	def update_users_work_address(self, user_name, work_address):
 		"""
@@ -212,7 +212,7 @@ class Queries(commands.Cog):
 		cursor.execute("UPDATE users SET time_zone = %s WHERE username = %s", (time_zone, user_name))
 		self.mydb.commit()
 		logger.debug("Query to update users time zone executed")
-	
+
 	@handle_exceptions
 	def get_users_home_address(self, user_name):
 		"""
@@ -227,7 +227,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to get users home address executed")
 		return result
-	
+
 	@handle_exceptions
 	def get_users_work_address(self, user_name):
 		"""
@@ -242,7 +242,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to get users work address executed")
 		return result
-	
+
 	@handle_exceptions
 	def get_users_time_zone(self, user_name):
 		"""
@@ -257,7 +257,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to get users time zone executed")
 		return result
-	
+
 	@handle_exceptions
 	def remove_user_from_db(self, user_name):
 		"""
@@ -309,7 +309,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to check if guild exists executed")
 		return result
-	
+
 	@handle_exceptions
 	def remove_guild_from_db(self, guild_name):
 		"""
@@ -320,13 +320,15 @@ class Queries(commands.Cog):
 		"""
 		cursor = self.mydb.cursor()
 		logger.debug("Executing query to remove guild")
-		cursor.execute("DELETE FROM guild_preferences WHERE guild_id = (SELECT guild_id FROM guilds WHERE guild_name = %s)", (guild_name,))
+		cursor.execute(
+			"DELETE FROM guild_preferences WHERE guild_id = (SELECT guild_id FROM guilds WHERE guild_name = %s)", (guild_name,)
+		)
 		self.mydb.commit()
 		logger.debug("Query to remove guild preferences executed")
 		cursor.execute("DELETE FROM guilds WHERE guild_name = %s", (guild_name,))
 		self.mydb.commit()
 		logger.debug("Query to remove guild executed")
-	
+
 	@handle_exceptions
 	def add_guild_preferences(self, text_channel, voice_channel, shows_channel, guild_name):
 		"""
@@ -349,7 +351,7 @@ class Queries(commands.Cog):
 		cursor.execute(query, params)
 		self.mydb.commit()
 		logger.debug("Query to add guild preferences executed")
-	
+
 	@handle_exceptions
 	def get_guilds_preferred_text_channel(self, guild_name):
 		"""
@@ -369,7 +371,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to get guilds preferred text channel executed")
 		return result[0] if result else None
-	
+
 	@handle_exceptions
 	def get_guilds_preferred_voice_channel(self, guild_name):
 		"""
@@ -389,7 +391,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to get guilds preferred voice channel executed")
 		return result[0] if result else None
-	
+
 	@handle_exceptions
 	def get_guilds_preferred_shows_channel(self, guild_name):
 		"""
@@ -409,6 +411,7 @@ class Queries(commands.Cog):
 		result = cursor.fetchone()
 		logger.debug("Query to get guilds preferred shows channel executed")
 		return result[0] if result else None
+
 
 async def setup(bot):
 	await bot.add_cog(Queries(bot))

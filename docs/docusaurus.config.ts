@@ -7,10 +7,10 @@ const config: Config = {
   title: 'Dollar User Manual',
   tagline: 'All the information you need to get started with Dollar',
   favicon: 'img/favicon.ico',
-  url: 'https://aaronrai24.github.io',
-  baseUrl: '/DollarDiscordBot/',
-  organizationName: 'aaronrai24',
-  projectName: 'DollarDiscordBot',
+  url: 'https://aaron-rai.github.io',
+  baseUrl: '/dollar-discord-bot/',
+  organizationName: 'aaron-rai',
+  projectName: 'dollar-discord-bot',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -59,7 +59,7 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          href: 'https://github.com/aaronrai24/DollarDiscordBot',
+          href: 'https://github.com/aaron-rai/dollar-discord-bot',
           label: 'GitHub',
           position: 'right',
         },

@@ -2,10 +2,7 @@
 DESCRIPTION: Music commands reside here
 """
 
-from ..common.libraries import(
-	discord, commands, genius, wavelink, random,
-	sp, artist
-)
+from ..common.libraries import (discord, commands, genius, wavelink, random, sp, artist)
 
 from ..common.generalfunctions import GeneralFunctions
 from ..common.generalfunctions import CustomPlayer
@@ -13,17 +10,20 @@ from ..queries.queries import Queries
 
 logger = GeneralFunctions.setup_logger("music")
 
+
 class Music(commands.Cog):
 	"""
 	DESCRIPTION: Creates Music class
 	PARAMETERS: commands.Bot - Discord Commands
 	"""
+
 	def __init__(self, bot):
 		self.bot = bot
 		self.mydb = bot.mydb
 
 #------------------------------------------------------------------------------------------------
 # Listeners
+
 	@commands.Cog.listener()
 	async def on_wavelink_node_ready(self, payload: wavelink.NodeReadyEventPayload) -> None:
 		logger.info(f"Node {payload.node!r} is ready!")
@@ -41,17 +41,17 @@ class Music(commands.Cog):
 		track: wavelink.Playable = payload.track
 		global artist
 		artist = track.author
-		
+
 	@commands.Cog.listener()
 	async def on_wavelink_track_end(self, payload: wavelink.TrackStartEventPayload) -> None:
 		player: wavelink.Player = payload.player
-		if not player.queue.is_empty:
+		if player and not player.queue.is_empty:
 			next_track = player.queue.get()
 			await player.play(next_track)
 			logger.info(f"Playing next track: {next_track}")
 		else:
 			logger.info("Queue is empty")
-	
+
 	@commands.Cog.listener()
 	async def on_wavelink_inactive_player(self, player: wavelink.Player) -> None:
 		logger.info(f"10 minutes reached, Dollar disconnecting from {str(player.guild)}")
@@ -67,6 +67,7 @@ class Music(commands.Cog):
 
 #------------------------------------------------------------------------------------------------
 # Helper Functions
+
 	async def ensure_voice_connection(self, ctx):
 		"""
 		DESCRIPTION: Ensures the bot is connected to a voice channel
@@ -117,8 +118,10 @@ class Music(commands.Cog):
 		await vc.play(search)
 		return embed
 
+
 #------------------------------------------------------------------------------------------------
 # Commands
+
 	@commands.command(aliases=["Join"])
 	@GeneralFunctions.is_connected_to_voice()
 	async def join(self, ctx):
@@ -179,11 +182,8 @@ class Music(commands.Cog):
 	@GeneralFunctions.is_connected_to_same_voice()
 	async def lofi(self, ctx):
 		lofii_list = [
-			"lofi hip hop radio - beats to relax/study to",
-			"90's chill lofi study music lofi rain chillhop beats",
-			"Autumn lofi vibes",
-			"synthwave lofi",
-			"chillhop radio - jazzy & lofi hip hop beats"
+			"lofi hip hop radio - beats to relax/study to", "90's chill lofi study music lofi rain chillhop beats",
+			"Autumn lofi vibes", "synthwave lofi", "chillhop radio - jazzy & lofi hip hop beats"
 		]
 		lofi = random.choice(lofii_list)
 		all_tracks = await wavelink.Playable.search(lofi)
@@ -194,7 +194,7 @@ class Music(commands.Cog):
 			return
 
 		selected_tracks = random.sample(all_tracks, 10)
-		
+
 		vc = ctx.voice_client
 		if not vc:
 			raise commands.CheckFailure("The bot is not connected to a voice channel.")
@@ -244,7 +244,7 @@ class Music(commands.Cog):
 				await GeneralFunctions.send_embed_error("No Song Playing", msg, ctx)
 		else:
 			raise commands.CheckFailure("The bot is not connected to a voice channel.")
-	
+
 	@commands.command(aliases=["Remove"])
 	@GeneralFunctions.is_connected_to_same_voice()
 	async def remove(self, ctx, index: int):
@@ -266,7 +266,7 @@ class Music(commands.Cog):
 					await GeneralFunctions.send_embed_error("Index Out of Range", msg, ctx)
 		else:
 			raise commands.CheckFailure("The bot is not connected to a voice channel.")
-	
+
 	@commands.command(aliases=["Swap"])
 	@GeneralFunctions.is_connected_to_same_voice()
 	async def swap(self, ctx, song_one: int, song_two: int):
@@ -288,7 +288,7 @@ class Music(commands.Cog):
 					await GeneralFunctions.send_embed_error("Index Out of Range", msg, ctx)
 		else:
 			raise commands.CheckFailure("The bot is not connected to a voice channel.")
-		
+
 	@commands.command(aliases=["Shuffle"])
 	@GeneralFunctions.is_connected_to_same_voice()
 	async def shuffle(self, ctx):
@@ -418,11 +418,14 @@ class Music(commands.Cog):
 		vc = ctx.voice_client
 		offset = random.randint(0, 1000)
 
-		query = " ".join(filter(None, [
-			f"genre:{playlist_type}" if playlist_type else None,
-			f"artist:{musician}" if musician else None,
-			f"album:{album}" if album else None
-		]))
+		query = " ".join(
+			filter(
+				None, [
+					f"genre:{playlist_type}" if playlist_type else None, f"artist:{musician}" if musician else None,
+					f"album:{album}" if album else None
+				]
+			)
+		)
 
 		if not query:
 			await ctx.send("Please provide at least one parameter.")
@@ -475,13 +478,16 @@ class Music(commands.Cog):
 					except TimeoutError:
 						logger.warning("GET request timed out, retrying...")
 				if song is None:
-					await ctx.send("Unable to find song lyrics, songs from playlists are less likely to return lyrics...")
+					await ctx.send(
+						"Unable to find song lyrics, songs from playlists are less likely to return lyrics..."
+					)
 				else:
 					if len(song.lyrics) > 4096:
 						msg = f"Lyrics can be found here: <{song.url}>"
 						return await GeneralFunctions.send_embed("Lyrics", "dollarMusic.png", msg, ctx)
-					embed = discord.Embed(title=song.title, url=song.url,
-										description=song.lyrics, color=discord.Color.random())
+					embed = discord.Embed(
+						title=song.title, url=song.url, description=song.lyrics, color=discord.Color.random()
+					)
 					embed.set_author(name=f"{song.artist}")
 					embed.set_thumbnail(url=f"{song.header_image_thumbnail_url}")
 					embed.set_footer()
@@ -505,6 +511,7 @@ class Music(commands.Cog):
 		elif isinstance(error, wavelink.LavalinkLoadException):
 			await GeneralFunctions.send_embed_error("Lavalink Load Error", error, ctx)
 			logger.error(f"Lavalink Load error: {error}")
-		
+
+
 async def setup(bot):
 	await bot.add_cog(Music(bot))
