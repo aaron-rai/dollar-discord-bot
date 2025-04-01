@@ -1,16 +1,16 @@
-# DollarDiscordBot
+# dollar-discord-bot
 ---
 
 <p align="center">
-    <img src="https://img.shields.io/badge/author-aaronrai24-blue" alt="Author Badge">
-    <img src="https://img.shields.io/badge/version-2.0.1-purple" alt="Version Badge">
+    <img src="https://img.shields.io/badge/author-aaronrai-blue" alt="Author Badge">
+    <img src="https://img.shields.io/badge/version-2.0.3-purple" alt="Version Badge">
     <img src="https://img.shields.io/badge/PyLint-Passing-brightgreen" alt="Pylint Status Badge">
-    <img src="https://github.com/aaronrai24/DollarDiscordBot/actions/workflows/runner.yml/badge.svg " alt="CI Badge">
+    <img src="https://github.com/aaron-rai/dollar-discord-bot/actions/workflows/runner.yml/badge.svg " alt="CI Badge">
     <img src="https://img.shields.io/badge/license-MIT-red" alt="License Badge">
 </p>
 
 > [!IMPORTANT]  
-> Docusarus available at our github([Dollar Docs](https://aaronrai24.github.io/DollarDiscordBot/)).
+> Docusarus available at our github([Dollar Docs](https://aaron-rai.github.io/dollar-discord-bot/)).
 
 > [!NOTE]
 > To add Dollar to your Discord, click [here](https://discord.com/api/oauth2/authorize?client_id=1044813990473257081&permissions=8&scope=applications.commands%20bot).

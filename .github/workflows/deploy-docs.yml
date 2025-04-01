@@ -25,8 +25,8 @@ jobs:
       - name: Build website
         run: yarn build
         env:
-          GITHUB_HOST: https://aaronrai24.github.io
-          BASE_URL: /DollarDiscordBot/
+          GITHUB_HOST: https://aaron-rai.github.io
+          BASE_URL: /dollar-discord-bot/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

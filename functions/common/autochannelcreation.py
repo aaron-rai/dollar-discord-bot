@@ -7,13 +7,15 @@ from ..common import libraries as lib
 
 logger = GeneralFunctions.setup_logger("auto-channel-creation")
 
+
 class AutoChannelCreation():
 	"""
 	DESCRIPTION: Creates Auto Channel Creation Class
 	"""
+
 	def __init__(self):
 		pass
-	
+
 	async def create_personal_channel(member, join_channel):
 		"""
 		DESCRIPTION: Creates a personal channel for a member
@@ -42,14 +44,11 @@ class AutoChannelCreation():
 
 		async with lock_channel(join_channel):
 			new_channel = await guild.create_voice_channel(
-				f"{member.display_name}'s Channel",
-				category=category,
-				bitrate=96000,
-				position=trigger_channel_pos
+				f"{member.display_name}'s Channel", category=category, bitrate=96000, position=trigger_channel_pos
 			)
 			await new_channel.set_permissions(member, manage_channels=True)
 			lib.created_channels.add(new_channel.id)
-			
+
 			await member.move_to(new_channel)
 			await lib.asyncio.sleep(1)  # Short delay to ensure move completes
 
@@ -58,7 +57,9 @@ class AutoChannelCreation():
 			#NOTE: Check if member joined the channel if not delete the channel
 			if not member.voice or member.voice.channel != new_channel:
 				await new_channel.delete()
-				logger.warning(f"User did not join voice channle, deleted orphaned channel {new_channel.name} in {guild.name}")
+				logger.warning(
+					f"User did not join voice channle, deleted orphaned channel {new_channel.name} in {guild.name}"
+				)
 				return
 
 	async def handle_channel_leave(channel):

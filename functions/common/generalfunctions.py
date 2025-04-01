@@ -3,24 +3,25 @@ DESCRIPTION: Common functions accessible by any class
 All general functions should be written here.
 """
 
-from .libraries import(
-	datetime, discord, logging, commands, wavelink, os, 
-	pool, pytz, requests, BeautifulSoup
-)
+from .libraries import (datetime, discord, logging, commands, wavelink, os, pool, pytz, requests, BeautifulSoup)
+
 
 class CustomPlayer(wavelink.Player):
 	"""
 	DESCRIPTION: Creates CustomPlayer class for wavelink
 	PARAMETERS: wavelink.Player - Player instance
 	"""
+
 	def __init__(self):
 		super().__init__()
 		self.queue = wavelink.Queue()
+
 
 class GeneralFunctions():
 	"""
 	DESCRIPTION: Creates GeneralFunctions class
 	"""
+
 	def __init__(self):
 		pass
 
@@ -35,29 +36,25 @@ class GeneralFunctions():
 		- logging.Logger: The configured logger instance.
 		"""
 		configured_logger = logging.getLogger(logger_name)
-		
+
 		if not configured_logger.handlers:
 			#NOTE: File Handler (Rotating)
 			file_handler = logging.handlers.RotatingFileHandler(
 				filename="discord.log",
 				encoding="utf-8",
-				maxBytes=1024*1024,
+				maxBytes=1024 * 1024,
 				backupCount=5,
 			)
-			file_handler.setFormatter(logging.Formatter(
-				"%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-			))
-			
+			file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+
 			#NOTE: Console Handler (stdout)
 			console_handler = logging.StreamHandler()
-			console_handler.setFormatter(logging.Formatter(
-				"%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-			))
+			console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 
 			configured_logger.addHandler(file_handler)
 			configured_logger.addHandler(console_handler)
 			configured_logger.setLevel(logging.INFO)
-		
+
 		return configured_logger
 
 	def is_connected_to_same_voice():
@@ -67,12 +64,14 @@ class GeneralFunctions():
 		Returns:
 		- A check function that raises `commands.CheckFailure`
 		"""
+
 		async def predicate(ctx):
 			if not ctx.author.voice:
 				raise commands.CheckFailure("You need to be in a voice channel to use this command")
 			elif not ctx.voice_client or ctx.author.voice.channel != ctx.voice_client.channel:
 				raise commands.CheckFailure("You need to be in the same voice channel as Dollar to use this command")
 			return True
+
 		return commands.check(predicate)
 
 	def is_connected_to_voice():
@@ -82,10 +81,12 @@ class GeneralFunctions():
 		Returns:
 		- A check function that raises `commands.CheckFailure`
 		"""
+
 		async def predicate(ctx):
 			if not ctx.author.voice:
 				raise commands.CheckFailure("You need to be in a voice channel to use this command")
 			return True
+
 		return commands.check(predicate)
 
 	def is_guild_owner():
@@ -95,12 +96,14 @@ class GeneralFunctions():
 		Returns:
 		- A check function that raises `commands.CheckFailure`
 		"""
+
 		async def predicate(ctx):
 			if not ctx.author.id == ctx.guild.owner_id:
 				raise commands.CheckFailure("You need to be the guild owner to use this command")
 			return True
+
 		return commands.check(predicate)
-	
+
 	def is_guild_owner_interaction():
 		"""
 		Check if the command invoker is the guild owner. Interaction Context.
@@ -108,12 +111,14 @@ class GeneralFunctions():
 		Returns:
 		- A check function that raises `app_commands.CheckFailure`
 		"""
+
 		async def predicate(interaction: discord.Interaction) -> bool:
 			if interaction.user.id != interaction.guild.owner_id:
 				raise discord.app_commands.CheckFailure("You need to be the guild owner to use this command.")
 			return True
+
 		return discord.app_commands.check(predicate)
-	
+
 	async def get_bot_member(guild: discord.Guild, bot: discord.Client):
 		"""
 		Get the bot instance as a discord.Member object in a specific guild.
@@ -135,13 +140,9 @@ class GeneralFunctions():
 		- bool: True if the connection is valid, False otherwise.
 		"""
 		try:
+			logger.info("Connecting to the database...")
 			connection_pool = pool.SimpleConnectionPool(
-				1,
-				8,
-				host="db",
-				user=os.getenv("DB_USER"),
-				password=os.getenv("DB_PW"),
-				dbname=os.getenv("DB_SCHEMA")
+				1, 8, host="db", user=os.getenv("DB_USER"), password=os.getenv("DB_PW"), dbname=os.getenv("DB_SCHEMA")
 			)
 			mydb = connection_pool.getconn()
 			logger.info("Connected to the database successfully.")
@@ -196,7 +197,7 @@ class GeneralFunctions():
 			utc_time = pytz.utc.localize(time_obj)
 			converted_time = utc_time.astimezone(target_tz)
 			return converted_time.strftime("%B %d, %Y at %I:%M %p")
-			
+
 		except ValueError:
 			return "Error: Invalid time format. Expected format: Month DD, YYYY at HH:MM AM/PM"
 		except KeyError:
@@ -212,6 +213,7 @@ class GeneralFunctions():
 		Returns:
 		- None
 		"""
+
 		async def send_patch_note_embed(channel, guild):
 			"""
 			Local function to send an embedded message with the latest patch notes to a specified channel.
@@ -228,9 +230,7 @@ class GeneralFunctions():
 						desc = file.read()
 
 				embed = discord.Embed(
-					title="Patch: 2.0.2",
-					url="https://github.com/aaronrai24/DollarDiscordBot",
-					description=desc,
+					title="Patch: 2.0.3", url="https://github.com/aaron-rai/dollar-discord-bot", description=desc,
 					colour=discord.Color.green()
 				)
 				embed.set_author(name="Dollar")
@@ -325,17 +325,18 @@ class GeneralFunctions():
 			embed.set_footer(text=footer)
 		logger.debug("Embed created successfully, returning...")
 		return embed
-	
+
 	def get_image_url(name, tag):
 		url = f"https://www.google.com/search?q={name}+{tag}&tbm=isch"
 		headers = {
-			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-			}
+			"User-Agent":
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+		}
 		response = requests.get(url, headers=headers, timeout=60)
 		soup = BeautifulSoup(response.text, "html.parser")
 		image_results = soup.find_all("img")
 		return image_results[1]["src"]
-	
+
 	def modal_error_check(error):
 		"""
 		DESCRIPTION: Fires on error of Settings Modal
@@ -351,6 +352,6 @@ class GeneralFunctions():
 			message = "Oops! Something went wrong. Please report this bug using /reportbug."
 
 		return message
-		
+
 
 logger = GeneralFunctions.setup_logger("core")

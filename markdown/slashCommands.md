@@ -8,4 +8,4 @@
 
 ### More Detailed Documentation Available
 
-- [Dollar Docs](https://aaronrai24.github.io/DollarDiscordBot/)
+- [Dollar Docs](https://aaron-rai.github.io/dollar-discord-bot/)

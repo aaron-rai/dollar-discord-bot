@@ -1,9 +1,10 @@
-- 2.0.2 fixes some minor annoyances and updates some documentation, if you notice any issues please report them or missing documentation please report it using the `/reportbug` command as we are trying to make Dollar as stable as possible.
+- 2.0.3 updates the youtube-source plugin as well as updates our methods for creating Github issues with the new repository URL. This follows the migration of the repository from aaron-rai/dollar-discord-bot to aaron-rai/dollar-discord-bot.
 
 ### Fixes and Enhancements
 
-- Updated Youtube-Source plugin to 1.11.4
-- Added deployment status to the deployment page in github
-- Added documentation for game/software update notifiations[Dollar Docs](https://aaronrai24.github.io/DollarDiscordBot/docs/Notifications/overview)
-- Fixed an issue with `Poke User`, now Dollar checks if the poked user was already in the same voice channel as the user who poked them. If they were, the bot will not send a message to the user who was poked.
-- Added a channel message to the `Poke User` command for visibility to other users in the channel that a user was poked.
+- Updated Youtube-Source plugin to 1.12.0
+- Improved deployment workflow to allow for multiple deployment of a version without sending patch notes with each deployment.
+- Updated URL of documentation to point to new repository URL.
+- Updated `/reportbug` command to point to new repository URL.
+- Updated `/featurerequest` command to point to new repository URL.
+- Formatted codebase to Google style.

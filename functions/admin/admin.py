@@ -6,6 +6,7 @@ from ..common import libraries as lib
 
 logger = GeneralFunctions.setup_logger("administrative")
 
+
 class EmbedCreatorModal(lib.discord.ui.Modal, title="Embed Creator"):
 	"""
 	DESCRIPTION: Creates EmbedCreatorModal class
@@ -14,7 +15,7 @@ class EmbedCreatorModal(lib.discord.ui.Modal, title="Embed Creator"):
 
 	def __init__(self):
 		super().__init__()
-	
+
 	embed_title = lib.discord.ui.TextInput(label="Embed Title", required=True)
 	embed_description = lib.discord.ui.TextInput(label="Embed Description", required=True)
 	embed_image_url = lib.discord.ui.TextInput(label="Embed Image URL", required=False)
@@ -26,14 +27,11 @@ class EmbedCreatorModal(lib.discord.ui.Modal, title="Embed Creator"):
 		PARAMETERS: interaction - Discord Interaction
 		"""
 		embed = GeneralFunctions.create_embed(
-			title=self.embed_title.value,
-			author=interaction.user,
-			image=self.embed_image_url.value,
-			description=self.embed_description.value,
-			footer=self.embed_footer.value
+			title=self.embed_title.value, author=interaction.user, image=self.embed_image_url.value,
+			description=self.embed_description.value, footer=self.embed_footer.value
 		)
 		await interaction.response.send_message(embed=embed)
-	
+
 	async def on_error(self, interaction: lib.discord.Interaction, error: Exception) -> None:
 		"""
 		DESCRIPTION: Fires on error of Settings Modal
@@ -43,11 +41,13 @@ class EmbedCreatorModal(lib.discord.ui.Modal, title="Embed Creator"):
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
+
 class Admin(lib.commands.Cog):
 	"""
 	DESCRIPTION: Creates Admin class
 	PARAMETERS: commands.Bot - Discord Commands
 	"""
+
 	def __init__(self, bot):
 		self.bot = bot
 		self.general_functions = GeneralFunctions()
@@ -86,7 +86,7 @@ class Admin(lib.commands.Cog):
 			await self.bot.load_extension(extension)
 			await ctx.send(f"Reloaded {extension}")
 			logger.info(f"Reloaded {extension}")
-		except Exception as e: # pylint: disable=broad-except
+		except Exception as e:  # pylint: disable=broad-except
 			await ctx.send(f"Error reloading {extension}, Cause: {e}")
 			logger.error(f"Error reloading {extension}: {e}")
 
@@ -98,6 +98,7 @@ class Admin(lib.commands.Cog):
 		"""
 		logger.info(f"Creating Embed creator modal for user: {interaction.user.name}")
 		await interaction.response.send_modal(EmbedCreatorModal())
+
 
 async def setup(bot):
 	await bot.add_cog(Admin(bot))

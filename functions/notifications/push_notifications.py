@@ -7,6 +7,7 @@ from ..common import libraries as lib
 
 logger = GeneralFunctions.setup_logger("notifications")
 
+
 @lib.discord.app_commands.context_menu(name="Poke User")
 async def poke_user(interaction: lib.discord.Interaction, user: lib.discord.Member):
 	"""
@@ -14,20 +15,20 @@ async def poke_user(interaction: lib.discord.Interaction, user: lib.discord.Memb
 	PARAMETERS: discord.Interaction - Discord Interaction
 	"""
 	command_user = interaction.user
-	
+
 	if not command_user.voice or not command_user.voice.channel:
 		await interaction.response.send_message("You need to be in a voice channel before using this command.", ephemeral=True)
 		return
-		
+
 	#NOTE: Check if target user is already in the same voice channel
 	if user.voice and user.voice.channel and user.voice.channel == command_user.voice.channel:
 		await interaction.response.send_message(f"{user.mention} is already in your voice channel!", ephemeral=True)
 		return
-	
 	await command_user.voice.channel.send(f"{command_user.mention} has poked {user.mention} to join this voice channel!")
 	await interaction.response.send_message(f"{user.mention} has been poked to join your voice channel!", ephemeral=True)
 	invite = await command_user.voice.channel.create_invite(max_uses=1, unique=True)
 	await user.send(f"Yo, {interaction.user} wants you to join their voice channel in {interaction.guild.name}! {invite.url}")
+
 
 @lib.discord.app_commands.context_menu(name="User Information")
 async def get_user_info(interaction: lib.discord.Interaction, user: lib.discord.Member):
@@ -37,35 +38,35 @@ async def get_user_info(interaction: lib.discord.Interaction, user: lib.discord.
 	"""
 	created_at = user.created_at.strftime("%B %d, %Y at %I:%M %p")
 	joined_at = user.joined_at.strftime("%B %d, %Y at %I:%M %p")
-		
-	time_zone = "pacific" #TODO: Get time zone from database
+
+	time_zone = "pacific"  #TODO: Get time zone from database
 	if time_zone:
 		created_at = GeneralFunctions.convert_time_zone(created_at, time_zone)
 		joined_at = GeneralFunctions.convert_time_zone(joined_at, time_zone)
 
 	#pylint: disable=inconsistent-quotes
-	msg = (f"User: {user.name}\n"
-		   f"Preferred Name: {user.display_name}\n"
-		   f"Created Their Account: {created_at}\n"
-		   f"Joined This Discord: {joined_at}\n"
-		   f"Roles: {', '.join([role.name for role in user.roles])}")
-	
+	msg = (
+		f"User: {user.name}\n"
+		f"Preferred Name: {user.display_name}\n"
+		f"Created Their Account: {created_at}\n"
+		f"Joined This Discord: {joined_at}\n"
+		f"Roles: {', '.join([role.name for role in user.roles])}"
+	)
+
 	embed = GeneralFunctions.create_embed(
-		title="User Information",
-		description=msg,
-		author=user,
-		image=user.avatar.url if user.avatar else None,
+		title="User Information", description=msg, author=user, image=user.avatar.url if user.avatar else None,
 		footer=f"Requested by {interaction.user}"
 	)
-	
+
 	await interaction.response.send_message(embed=embed)
+
 
 class PushNotifications(lib.commands.Cog):
 	"""
 	DESCRIPTION: Creates Push_Notifications class
 	PARAMETERS: commands.Bot - Discord Commands
 	"""
-	
+
 	def __init__(self, bot):
 		self.bot = bot
 		self.mydb = bot.mydb
@@ -85,6 +86,7 @@ class PushNotifications(lib.commands.Cog):
 		for user in users:
 			logger.info(f"Sending patch note notification for user: {user}")
 			await thread.send(f"<@{user}>, {game_name} has had a new update, check it out!")
+
 
 async def setup(bot):
 	await bot.add_cog(PushNotifications(bot))

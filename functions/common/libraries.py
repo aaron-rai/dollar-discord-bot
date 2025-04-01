@@ -50,13 +50,15 @@ ERROR_MAPPING = {
 	commands.MissingRole: ("Missing Required Role", "User has insufficient role"),
 	commands.CommandNotFound: ("Command Not Found", "User tried to use a command that does not exist"),
 	commands.BadArgument: ("Invalid Argument", "User provided an invalid argument"),
-   	commands.CheckFailure: ("Incorrect Command Usage", "User used command incorrectly"),
+	commands.CheckFailure: ("Incorrect Command Usage", "User used command incorrectly"),
 	discord.errors.PrivilegedIntentsRequired: ("Missing Required Intent", "Bot is missing required intent"),
 	commands.CommandOnCooldown: ("Command Cooldown", "Command on cooldown for user"),
 	wavelink.LavalinkException: ("Lavalink Error", "Lavalink error occurred"),
 	wavelink.InvalidChannelStateException: ("Invalid Channel State", "Invalid channel state"),
 }
 GITHUB_TOKEN = os.getenv('GHUBTOKEN')
+SEND_PATCH_NOTES = os.getenv('SEND_PATCH_NOTES') == "true"
+print(f"SEND_PATCH_NOTES: {SEND_PATCH_NOTES}")
 PATCHES_CHANNEL = os.getenv('PATCHES_CHANNEL')
 RIOT_TOKEN = os.getenv('RIOTTOKEN')
 START_TIME = time.time()

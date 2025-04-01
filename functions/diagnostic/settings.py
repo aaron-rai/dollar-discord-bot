@@ -8,11 +8,13 @@ from ..common import libraries as lib
 
 logger = GeneralFunctions.setup_logger("settings")
 
+
 class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 	"""
 	DESCRIPTION: Creates Settings Modal
 	PARAMETERS: discord.ui.Modal - Discord Modal
 	"""
+
 	def __init__(self, mydb):
 		super().__init__()
 		self.mydb = mydb
@@ -29,25 +31,25 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 		logger.debug(f"Checking for existing channels and creating text, voice, and shows channels for guild {guild}")
 
 		existing_channels = {channel.name: channel for channel in guild.channels}
-		
+
 		if text_channel_value not in existing_channels:
 			await guild.create_text_channel(text_channel_value)
 			logger.debug(f"Text channel '{text_channel_value}' created for guild {guild}")
 		else:
 			logger.warning(f"Text channel '{text_channel_value}' already exists in guild {guild}")
-		
+
 		if voice_channel_value not in existing_channels:
 			await guild.create_voice_channel(voice_channel_value)
 			logger.debug(f"Voice channel '{voice_channel_value}' created for guild {guild}")
 		else:
 			logger.warning(f"Voice channel '{voice_channel_value}' already exists in guild {guild}")
-		
+
 		if shows_channel_value not in existing_channels:
 			await guild.create_voice_channel(shows_channel_value)
 			logger.debug(f"Shows channel '{shows_channel_value}' created for guild {guild}")
 		else:
 			logger.warning(f"Shows channel '{shows_channel_value}' already exists in guild {guild}")
-	
+
 	async def on_submit(self, interaction: lib.discord.Interaction):
 		"""
 		DESCRIPTION: Fires on submit of Settings Modal
@@ -59,7 +61,9 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 		text_channel_value = self.text_channel.value.replace(" ", "-").lower()
 		voice_channel_value = self.voice_channel.value
 		shows_channel_value = self.shows_channel.value
-		logger.debug(f"Guild ID: {guild_id}, Text Channel: {text_channel_value}, Voice Channel: {voice_channel_value}, Shows Channel: {shows_channel_value}")
+		logger.debug(
+			f"Guild ID: {guild_id}, Text Channel: {text_channel_value}, Voice Channel: {voice_channel_value}, Shows Channel: {shows_channel_value}"
+		)
 
 		result = Queries.check_if_guild_exists(self, str(guild))
 		if result:
@@ -72,7 +76,7 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 				Queries.add_user_to_db(self, guild.owner.id, guild.owner.name)
 			Queries.add_guild_to_db(self, str(guild), str(guild_owner))
 			Queries.add_guild_preferences(self, text_channel_value, voice_channel_value, shows_channel_value, str(guild))
-		
+
 		#NOTE: Update text, voice channel caches
 		lib.guild_text_channels[str(guild)] = text_channel_value
 		lib.guild_voice_channels[str(guild)] = voice_channel_value
@@ -92,24 +96,23 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
+
 class UserInfoModal(lib.discord.ui.Modal, title="UserInfo"):
 	"""
 	DESCRIPTION: Creates UserInfo Modal
 	PARAMETERS: discord.ui.Modal - Discord Modal
 	"""
+
 	def __init__(self, mydb):
 		super().__init__()
 		self.mydb = mydb
-	
+
 	home_address = lib.discord.ui.TextInput(label="Home Address", placeholder="Enter Home Address", required=True)
 	work_address = lib.discord.ui.TextInput(label="Work Address", placeholder="Enter Work Address", required=True)
 	time_zone = lib.discord.ui.TextInput(
-		label="Time Zone", 
-		placeholder="Enter timezone (Eastern/Central/Mountain/Pacific)", 
-		required=True,
-		max_length=8
+		label="Time Zone", placeholder="Enter timezone (Eastern/Central/Mountain/Pacific)", required=True, max_length=8
 	)
-	
+
 	async def on_submit(self, interaction: lib.discord.Interaction):
 		"""
 		DESCRIPTION: Fires on submit of UserInfo Modal
@@ -122,15 +125,16 @@ class UserInfoModal(lib.discord.ui.Modal, title="UserInfo"):
 		timezone_value = self.time_zone.value.lower()
 
 		valid_timezones = ["eastern", "central", "mountain", "pacific"]
-		
+
 		if timezone_value not in valid_timezones:
 			await interaction.response.send_message(
-				"Invalid timezone. Please use Eastern, Central, Mountain, or Pacific.", 
-				ephemeral=True
+				"Invalid timezone. Please use Eastern, Central, Mountain, or Pacific.", ephemeral=True
 			)
 			return
 
-		logger.debug(f"Username: {user_name}, Home Address: {home_address_value}, Work Address: {work_address_value}, Time Zone: {timezone_value}")
+		logger.debug(
+			f"Username: {user_name}, Home Address: {home_address_value}, Work Address: {work_address_value}, Time Zone: {timezone_value}"
+		)
 
 		user_exists = Queries.check_if_user_exists(self, str(user_name))
 		if user_exists is None:
@@ -142,7 +146,9 @@ class UserInfoModal(lib.discord.ui.Modal, title="UserInfo"):
 			Queries.update_users_work_address(self, user_name, work_address_value)
 			Queries.update_users_time_zone(self, user_name, timezone_value)
 			logger.debug(f"Home, work addresses, and timezone updated for user {user_name}")
-		await interaction.response.send_message("Thanks! This data will never be shared and will be stored securely.", ephemeral=True)
+		await interaction.response.send_message(
+			"Thanks! This data will never be shared and will be stored securely.", ephemeral=True
+		)
 
 	async def on_error(self, interaction: lib.discord.Interaction, error: Exception) -> None:
 		"""
@@ -152,6 +158,7 @@ class UserInfoModal(lib.discord.ui.Modal, title="UserInfo"):
 		message = GeneralFunctions.modal_error_check(error)
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
+
 
 class Settings(lib.commands.Cog):
 	"""
@@ -184,6 +191,7 @@ class Settings(lib.commands.Cog):
 		"""
 		logger.debug(f"Creating UserInfo Modal for: {interaction.user.name}")
 		await interaction.response.send_modal(UserInfoModal(self.mydb))
+
 
 async def setup(bot):
 	await bot.add_cog(Settings(bot))

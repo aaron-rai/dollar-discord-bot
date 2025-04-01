@@ -23,6 +23,7 @@ services:
       DB_SCHEMA: ${DB_SCHEMA}
       PATCHES_CHANNEL: ${PATCHES_CHANNEL}
       CASH: ${CASH}
+      SEND_PATCH_NOTES: ${SEND_PATCH_NOTES}
       TZ: America/Los_Angeles
     ports:
       - "5000:5000"
