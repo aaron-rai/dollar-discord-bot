@@ -6,7 +6,7 @@ The **Auto Channel Creation** feature allows **Dollar** to dynamically create te
 
 ### Highlights
 
-- Trigger channels are set via the [/dollarsettings](../3-Slash/2-Commands/DollarSettings.md) slash command.
+- Trigger channels are set via the [/dollarsettings](../4-Slash/2-Commands/DollarSettings.md) slash command.
 - Temporary channels are automatically named after the user (e.g., "John's Channel").
 - Users are granted management permissions for their channel.
 - Unused channels are deleted when the user does not join or when they leave.
@@ -17,7 +17,7 @@ The **Auto Channel Creation** feature allows **Dollar** to dynamically create te
 
 ### Highlights
 
-- Moderation ensures bot commands are sent only in the specified commands channel (set using [/dollarsettings](../3-Slash/2-Commands/DollarSettings.md) or `#commands`).
+- Moderation ensures bot commands are sent only in the specified commands channel (set using [/dollarsettings](../4-Slash/2-Commands/DollarSettings.md) or `#commands`).
 - Commands sent in the wrong channel are deleted, and the user is notified privately.
 - Supports direct messages (DMs) to the bot, providing helpful resources in response.
 - Handles specialized notifications, such as game updates in predefined channels like `#patches`.
