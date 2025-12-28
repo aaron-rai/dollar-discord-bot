@@ -45,6 +45,16 @@ jobs:
           CASH: ${{ secrets.CASH }}
           SEND_PATCH_NOTES: ${{ inputs.send_patch_notes }}
 
+      - name: Check Container Health
+        if: failure()
+        run: |
+          echo "=== Container Status ==="
+          docker ps -a
+          echo "=== PostgreSQL Logs ==="
+          docker logs postgres || true
+          echo "=== PostgreSQL Health ==="
+          docker inspect postgres | grep -A 15 Health || true
+
       - name: Cleanup Unused Images
         run: docker image prune -f
 

@@ -49,7 +49,7 @@ services:
     user: root
 
   db:
-    image: postgres:15
+    image: postgres:17
     container_name: postgres
     restart: always
     environment:
