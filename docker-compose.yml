@@ -61,10 +61,11 @@ services:
     - pgdata:/var/lib/postgresql/data
     - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 1s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_SCHEMA}"]
+      interval: 2s
       timeout: 5s
-      retries: 10
+      retries: 30
+      start_period: 10s
     networks:
       - dollar
     ports:
