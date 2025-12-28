@@ -3,7 +3,6 @@ Dollar Customization Settings
 """
 
 from ..common.generalfunctions import GeneralFunctions
-from ..queries.queries import Queries
 from ..common import libraries as lib
 
 logger = GeneralFunctions.setup_logger("settings")
@@ -181,7 +180,7 @@ class Settings(lib.commands.Cog):
 			await interaction.response.send_message("You must be the server owner to change settings", ephemeral=True)
 		else:
 			# Get Queries cog instance
-			queries_cog = self.bot.get_cog('Queries')
+			queries_cog = self.bot.get_cog("Queries")
 			await interaction.response.send_modal(SettingsModal(queries_cog))
 
 	@lib.discord.app_commands.command(name="updateuserinfo", description="Update Your User Information")
@@ -192,7 +191,7 @@ class Settings(lib.commands.Cog):
 		"""
 		logger.debug(f"Creating UserInfo Modal for: {interaction.user.name}")
 		# Get Queries cog instance
-		queries_cog = self.bot.get_cog('Queries')
+		queries_cog = self.bot.get_cog("Queries")
 		await interaction.response.send_modal(UserInfoModal(queries_cog))
 
 

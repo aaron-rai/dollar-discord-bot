@@ -7,7 +7,7 @@ import logging
 import os
 import time
 from contextlib import contextmanager
-from psycopg2 import pool, DatabaseError, Error, IntegrityError, ProgrammingError
+from psycopg2 import pool
 
 logger = logging.getLogger("database")
 
@@ -22,12 +22,12 @@ class DatabaseService:
 		"""Initialize the database service (connection pool created on first connect)."""
 		self._pool = None
 		self._connection_params = {
-			'host': os.getenv('DB_HOST', 'db'),
-			'user': os.getenv('DB_USER'),
-			'password': os.getenv('DB_PW'),
-			'database': os.getenv('DB_SCHEMA'),
-			'minconn': 1,
-			'maxconn': 8
+			"host": os.getenv("DB_HOST", "db"),
+			"user": os.getenv("DB_USER"),
+			"password": os.getenv("DB_PW"),
+			"database": os.getenv("DB_SCHEMA"),
+			"minconn": 1,
+			"maxconn": 8
 		}
 
 	def connect(self, max_retries=5, retry_delay=2):
@@ -143,7 +143,7 @@ class DatabaseService:
 
 
 # Global database service instance
-_db_service = None
+_DB_SERVICE = None
 
 
 def get_database_service():
@@ -153,10 +153,10 @@ def get_database_service():
 	Returns:
 	- DatabaseService: The global database service instance
 	"""
-	global _db_service
-	if _db_service is None:
-		_db_service = DatabaseService()
-	return _db_service
+	global _DB_SERVICE
+	if _DB_SERVICE is None:
+		_DB_SERVICE = DatabaseService()
+	return _DB_SERVICE
 
 
 def initialize_database(max_retries=5):

@@ -2,7 +2,6 @@
 This file contains the functions for the push notifications.
 """
 from ..common.generalfunctions import GeneralFunctions
-from ..queries.queries import Queries
 from ..common import libraries as lib
 
 logger = GeneralFunctions.setup_logger("notifications")
@@ -78,7 +77,7 @@ class PushNotifications(lib.commands.Cog):
 		"""
 		logger.debug("Notifying users of game update...")
 		# Get Queries cog instance
-		queries_cog = self.bot.get_cog('Queries')
+		queries_cog = self.bot.get_cog("Queries")
 		if not queries_cog:
 			logger.error("Queries cog not found, cannot notify users")
 			return
