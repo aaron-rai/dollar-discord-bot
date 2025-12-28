@@ -26,7 +26,7 @@ jobs:
           desc: "Starting deployment"
 
       - name: Run Container
-        run: docker compose up -d --build --remove-orphans
+        run: docker compose up -d --build --pull always --remove-orphans
         env:
           TOKEN: ${{ secrets.TOKEN }}
           GENIUSTOKEN: ${{ secrets.GENIUSTOKEN }}
