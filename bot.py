@@ -53,8 +53,7 @@ class UnfilteredBot(lib.commands.Bot):
 		await super().close()
 		await self.session.close()
 		# Close database pool
-		db_service = get_database_service()
-		db_service.close_pool()
+		get_database_service().close_pool()
 
 
 client = UnfilteredBot(command_prefix="!", intents=lib.discord.Intents.all(), help_command=None)
@@ -99,8 +98,7 @@ async def validate_db():
 	"""
 	DESCRIPTION: Periodically validate the database connection
 	"""
-	db_service = get_database_service()
-	db_service.validate_connection()
+	get_database_service().validate_connection()
 
 
 #------------------------------------------------------------------------------------------------
