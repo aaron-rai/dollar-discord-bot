@@ -3,7 +3,7 @@ DESCRIPTION: Common functions accessible by any class
 All general functions should be written here.
 """
 
-from .libraries import (datetime, discord, logging, commands, wavelink, os, pool, pytz, requests, BeautifulSoup)
+from .libraries import (datetime, discord, logging, commands, wavelink, os, pytz, requests, BeautifulSoup)
 
 
 class CustomPlayer(wavelink.Player):
@@ -132,46 +132,6 @@ class GeneralFunctions():
 		"""
 		return guild.get_member(bot.user.id)
 
-	def connect_to_database():
-		"""
-		Validate the connection to a PostgreSQL database by executing a simple query.
-
-		Returns:
-		- bool: True if the connection is valid, False otherwise.
-		"""
-		try:
-			logger.info("Connecting to the database...")
-			connection_pool = pool.SimpleConnectionPool(
-				1, 8, host="db", user=os.getenv("DB_USER"), password=os.getenv("DB_PW"), dbname=os.getenv("DB_SCHEMA")
-			)
-			mydb = connection_pool.getconn()
-			logger.info("Connected to the database successfully.")
-			logger.debug("Acquired a database connection from the connection pool.")
-			return mydb
-		except Exception as err:
-			logger.error(f"Failed to connect to the database: {err}")
-			return None
-
-	async def validate_connection(mydb):
-		"""
-		Validate the connection to a PostgreSQL database by executing a simple query.
-
-		Parameters:
-		- mydb (psycopg2.extensions.connection): The PostgreSQL database connection object.
-
-		Returns:
-		- bool: True if the connection is valid, False otherwise.
-		"""
-		try:
-			cursor = mydb.cursor()
-			cursor.execute("SELECT 1")
-			cursor.fetchall()
-			cursor.close()
-			logger.debug("Executed validation query")
-			return True
-		except Exception as error:
-			logger.error(f"Error validating connection: {error}")
-			return False
 
 	def convert_time_zone(time_str, time_zone):
 		"""
@@ -230,7 +190,7 @@ class GeneralFunctions():
 						desc = file.read()
 
 				embed = discord.Embed(
-					title="Patch: 2.0.3", url="https://github.com/aaron-rai/dollar-discord-bot", description=desc,
+					title="Patch: 2.0.4", url="https://github.com/aaron-rai/dollar-discord-bot", description=desc,
 					colour=discord.Color.green()
 				)
 				embed.set_author(name="Dollar")

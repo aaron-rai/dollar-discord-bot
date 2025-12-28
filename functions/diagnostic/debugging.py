@@ -316,9 +316,7 @@ class Debugging(commands.Cog):
 			for task in asyncio.all_tasks():
 				task.cancel()
 				logger.debug(f"Shutdown task: {task}")
-			logger.debug("Closing database connection...")
-			self.bot.mydb.close()
-			logger.info("Database connection closed")
+			logger.debug("Shutting down bot (database pool will be closed in bot.close())...")
 			await self.bot.close()
 		except Exception as e:
 			logger.error(f"An error occured during shutdown {e}")

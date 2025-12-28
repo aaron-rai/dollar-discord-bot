@@ -69,17 +69,21 @@ class PushNotifications(lib.commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.mydb = bot.mydb
 
 	async def notify_game_update(self, game_name, message):
 		"""
 		DESCRIPTION: Notifies users of game updates
 		PARAMETERS: game_name (str) - Game name
-					channel_id (int) - Channel ID
-					message_id (int) - Message ID
+					message (discord.Message) - Message object
 		"""
 		logger.debug("Notifying users of game update...")
-		users = Queries.get_game_subscriptions(self.mydb, game_name)
+		# Get Queries cog instance
+		queries_cog = self.bot.get_cog('Queries')
+		if not queries_cog:
+			logger.error("Queries cog not found, cannot notify users")
+			return
+
+		users = queries_cog.get_game_subscriptions(game_name)
 		logger.debug(f"Users: {users} that are subscribed to {game_name}")
 
 		thread = await message.create_thread(name=f"{game_name} Update Subscriptions")

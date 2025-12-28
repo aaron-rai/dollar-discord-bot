@@ -19,7 +19,6 @@ class Music(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.mydb = bot.mydb
 
 #------------------------------------------------------------------------------------------------
 # Listeners

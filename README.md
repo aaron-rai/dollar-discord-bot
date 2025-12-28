@@ -3,23 +3,31 @@
 
 <p align="center">
     <img src="https://img.shields.io/badge/author-aaronrai-blue" alt="Author Badge">
-    <img src="https://img.shields.io/badge/version-2.0.3-purple" alt="Version Badge">
+    <img src="https://img.shields.io/badge/version-2.0.4-purple" alt="Version Badge">
     <img src="https://img.shields.io/badge/PyLint-Passing-brightgreen" alt="Pylint Status Badge">
     <img src="https://github.com/aaron-rai/dollar-discord-bot/actions/workflows/runner.yml/badge.svg " alt="CI Badge">
     <img src="https://img.shields.io/badge/license-MIT-red" alt="License Badge">
 </p>
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > Docusarus available at our github([Dollar Docs](https://aaron-rai.github.io/dollar-discord-bot/)).
-
-> [!NOTE]
-> To add Dollar to your Discord, click [here](https://discord.com/api/oauth2/authorize?client_id=1044813990473257081&permissions=8&scope=applications.commands%20bot).
 
 Dollar: Your all-in-one Discord companion! Powered by Lavalink, Dollar not only lets you play music from popular websites, but goes above and beyond. Dollar acts as a versatile moderator, creating personal voice channels and enforcing proper command usage.
 
 With Dollar, you'll enjoy a seamless music experience. It intelligently responds to commands entered in the designated text channel and plays music exclusively when users are in the same voice channel. No more juggling multiple music platforms!
 
 Stay tuned for frequent updates and exciting new features as Dollar continually evolves. Add Dollar and unleash the true potential of your Discord server!
+
+## Installation
+
+**Quick Start:**
+1. [Add Dollar to your Discord server](https://discord.com/api/oauth2/authorize?client_id=1044813990473257081&permissions=8&scope=applications.commands%20bot)
+2. Run `/dollarsettings` to configure your command channel, voice channel, and notifications channel
+3. Start using Dollar with `/play`, `/help`, and more!
+
+**Note:** Dollar only responds to commands in your designated text channel. To disable auto channel creation, simply delete the voice channel created during setup.
+
+For detailed installation instructions and troubleshooting, see the [Installation Guide](https://aaron-rai.github.io/dollar-discord-bot/docs/installation).
 
 ## Contributing
 

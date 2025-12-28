@@ -5,6 +5,7 @@ from functions import GeneralFunctions
 from functions import AutoChannelCreation
 from functions import Queries
 from functions import PushNotifications
+from functions.common.database import initialize_database, get_database_service
 import functions.common.libraries as lib
 
 lib.load_dotenv()
@@ -51,8 +52,9 @@ class UnfilteredBot(lib.commands.Bot):
 		logger.info("=== Closing Dollar ===")
 		await super().close()
 		await self.session.close()
-
-	mydb = GeneralFunctions.connect_to_database()
+		# Close database pool
+		db_service = get_database_service()
+		db_service.close_pool()
 
 
 client = UnfilteredBot(command_prefix="!", intents=lib.discord.Intents.all(), help_command=None)
@@ -61,6 +63,9 @@ logger = GeneralFunctions.setup_logger("dollar")
 
 DISCORD_TOKEN = lib.os.getenv("TOKEN")
 LAVALINK_TOKEN = lib.os.getenv("LAVALINK_TOKEN")
+
+# Initialize database service
+db_service = initialize_database(max_retries=5)
 
 #NOTE: Declarations
 push_notifications = PushNotifications(UnfilteredBot)
@@ -81,7 +86,7 @@ async def connect_nodes():
 	]
 	await lib.wavelink.Pool.connect(nodes=nodes, client=client, cache_capacity=100)
 	logger.info(f"Node: <{nodes}> is ready")
-	await client.change_presence(activity=lib.discord.Game(name=" 🎶Nonstop Bangers! | /help"))
+	await client.change_presence(activity=lib.discord.Game(name=" All the Hits! | /help"))
 	logger.info("=== Dollar is ready ===")
 
 
@@ -92,9 +97,10 @@ async def connect_nodes():
 @lib.tasks.loop(seconds=60)
 async def validate_db():
 	"""
-	DESCRIPTION: Periodically validate the connection
+	DESCRIPTION: Periodically validate the database connection
 	"""
-	await GeneralFunctions.validate_connection(UnfilteredBot.mydb)
+	db_service = get_database_service()
+	db_service.validate_connection()
 
 
 #------------------------------------------------------------------------------------------------
