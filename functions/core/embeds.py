@@ -110,7 +110,7 @@ async def send_patch_notes(client: discord.Client) -> None:
 					desc = file.read()
 
 			embed = discord.Embed(
-				title=f"Version: {config.VERSION}", url="https://github.com/aaron-rai/dollar-discord-bot", description=desc,
+				title=f"Version: {config.VERSION}", url="https://aaron-rai.github.io/dollar-discord-bot/", description=desc,
 				colour=discord.Color.green()
 			)
 			embed.set_author(name="Dollar")

@@ -41,15 +41,18 @@ cd scripts && pip install -r requirements.txt
 ### Docker Setup
 
 - To run the bot in a docker container, you must first build the image using the following command:
+
 ```bash
 docker build -t dollar .
 ```
 - Once the image is built, you can run the container using the following command:
+
 ```bash
 docker compose up -d
 ```
 - This will run the bot, lavalink, and the database in separate containers. The bot will be connected to the database and lavalink automatically.
 - After making code changes, you can rebuild the image and restart the container using the following commands:
+
 ```bash
 docker-compose up --build -d
 ```
@@ -57,11 +60,13 @@ docker-compose up --build -d
 - A helper script has been created to make this process easier. To use the script, run the following command:
 
 Windows:
+
 ```bash
 .\scripts\rebuild-and-prune.ps1
 ```
 
 Linux:
+
 ```bash
 ./scripts/rebuild-and-prune.sh
 ```
@@ -74,11 +79,13 @@ Linux:
 ## Documentation Contribution Guidelines
 
 - To contribute to the documentation, you must first install the Docusaurus package using the following command:
+
 ```bash
 cd docs && npm install
 ```
 
 - After making changes to the documentation, you can preview the changes using the following command:
+
 ```bash
 npm start
 ```
