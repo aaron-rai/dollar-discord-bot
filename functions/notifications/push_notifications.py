@@ -1,14 +1,17 @@
 """
 This file contains the functions for the push notifications.
 """
-from ..common.generalfunctions import GeneralFunctions
-from ..common import libraries as lib
+import discord
 
-logger = GeneralFunctions.setup_logger("notifications")
+from discord.ext import commands
+from functions.core.embeds import create_embed
+from functions.core.utils import setup_logger, convert_time_zone
+
+logger = setup_logger("notifications")
 
 
-@lib.discord.app_commands.context_menu(name="Poke User")
-async def poke_user(interaction: lib.discord.Interaction, user: lib.discord.Member):
+@discord.app_commands.context_menu(name="Poke User")
+async def poke_user(interaction: discord.Interaction, user: discord.Member):
 	"""
 	DESCRIPTION: Pokes a user and notifies them to join a voice channel
 	PARAMETERS: discord.Interaction - Discord Interaction
@@ -29,8 +32,8 @@ async def poke_user(interaction: lib.discord.Interaction, user: lib.discord.Memb
 	await user.send(f"Yo, {interaction.user} wants you to join their voice channel in {interaction.guild.name}! {invite.url}")
 
 
-@lib.discord.app_commands.context_menu(name="User Information")
-async def get_user_info(interaction: lib.discord.Interaction, user: lib.discord.Member):
+@discord.app_commands.context_menu(name="User Information")
+async def get_user_info(interaction: discord.Interaction, user: discord.Member):
 	"""
 	DESCRIPTION: Gets user information
 	PARAMETERS: interaction - Discord Interaction, user - Discord Member
@@ -40,8 +43,8 @@ async def get_user_info(interaction: lib.discord.Interaction, user: lib.discord.
 
 	time_zone = "pacific"  #TODO: Get time zone from database
 	if time_zone:
-		created_at = GeneralFunctions.convert_time_zone(created_at, time_zone)
-		joined_at = GeneralFunctions.convert_time_zone(joined_at, time_zone)
+		created_at = convert_time_zone(created_at, time_zone)
+		joined_at = convert_time_zone(joined_at, time_zone)
 
 	#pylint: disable=inconsistent-quotes
 	msg = (
@@ -52,7 +55,7 @@ async def get_user_info(interaction: lib.discord.Interaction, user: lib.discord.
 		f"Roles: {', '.join([role.name for role in user.roles])}"
 	)
 
-	embed = GeneralFunctions.create_embed(
+	embed = create_embed(
 		title="User Information", description=msg, author=user, image=user.avatar.url if user.avatar else None,
 		footer=f"Requested by {interaction.user}"
 	)
@@ -60,7 +63,7 @@ async def get_user_info(interaction: lib.discord.Interaction, user: lib.discord.
 	await interaction.response.send_message(embed=embed)
 
 
-class PushNotifications(lib.commands.Cog):
+class PushNotifications(commands.Cog):
 	"""
 	DESCRIPTION: Creates Push_Notifications class
 	PARAMETERS: commands.Bot - Discord Commands

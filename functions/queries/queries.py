@@ -2,12 +2,42 @@
 DESCRIPTION: Queries for the database reside here
 """
 #pylint: disable=not-callable
-from ..common.libraries import (commands, wraps, ProgrammingError, IntegrityError, DatabaseError, Error)
+import aiosql
+from pathlib import Path
+from functools import wraps
+from discord.ext import commands
+from psycopg2 import DatabaseError, Error, IntegrityError, ProgrammingError
+from functions.core.utils import setup_logger
+from functions.core.database import get_database_service
 
-from ..common.generalfunctions import GeneralFunctions
-from ..common.database import get_database_service
+logger = setup_logger("queries")
 
-logger = GeneralFunctions.setup_logger("queries")
+
+def handle_exceptions(func):
+	"""
+	DESCRIPTION: Decorator to handle exceptions in database queries.
+	Logs errors and re-raises them for proper error handling.
+	PARAMETERS: func (obj) - Function to be wrapped
+	"""
+
+	@wraps(func)
+	def wrapper(*args, **kwargs):
+		try:
+			return func(*args, **kwargs)
+		except ProgrammingError as err:
+			logger.error(f"Programming error in {func.__name__}: {err}")
+			raise
+		except IntegrityError as err:
+			logger.error(f"Integrity error in {func.__name__}: {err}")
+			raise
+		except DatabaseError as err:
+			logger.error(f"Database error in {func.__name__}: {err}")
+			raise
+		except Error as err:
+			logger.error(f"General error in {func.__name__}: {err}")
+			raise
+
+	return wrapper
 
 
 class Queries(commands.Cog):
@@ -19,32 +49,8 @@ class Queries(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.db_service = get_database_service()
-
-	def handle_exceptions(func):
-		"""
-		DESCRIPTION: Decorator to handle exceptions in database queries.
-		Logs errors and re-raises them for proper error handling.
-		PARAMETERS: func (obj) - Function to be wrapped
-		"""
-
-		@wraps(func)
-		def wrapper(*args, **kwargs):
-			try:
-				return func(*args, **kwargs)
-			except ProgrammingError as err:
-				logger.error(f"Programming error in {func.__name__}: {err}")
-				raise
-			except IntegrityError as err:
-				logger.error(f"Integrity error in {func.__name__}: {err}")
-				raise
-			except DatabaseError as err:
-				logger.error(f"Database error in {func.__name__}: {err}")
-				raise
-			except Error as err:
-				logger.error(f"General error in {func.__name__}: {err}")
-				raise
-
-		return wrapper
+		# Load all queries from the sql folder
+		self.queries = aiosql.from_path(Path(__file__).parent / "sql", "psycopg2")
 
 	@handle_exceptions
 	#pylint: disable=too-many-positional-arguments
@@ -60,11 +66,10 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to add user")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(
-					"INSERT INTO users (discord_id, username, home_address, work_address, time_zone) VALUES (%s, %s, %s, %s, %s)",
-					(user_id, user_name, home_address, work_address, time_zone)
-				)
+			self.queries.add_user(
+				conn, user_id=user_id, user_name=user_name, home_address=home_address, work_address=work_address,
+				time_zone=time_zone
+			)
 		logger.debug("Query to add user executed")
 
 	@handle_exceptions
@@ -78,9 +83,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to check if user exists")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("SELECT username FROM users WHERE username = %s", (user_name,))
-				result = cursor.fetchone()
+			result = self.queries.check_user_exists(conn, user_name=user_name)
 		logger.debug("Query to check if user exists executed")
 		return result
 
@@ -93,8 +96,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Inserting game into database")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("INSERT INTO games (game_name) VALUES (%s)", (game_name,))
+			self.queries.add_game(conn, game_name=game_name)
 		logger.debug("Game inserted into database")
 
 	@handle_exceptions
@@ -108,9 +110,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to check if game exists")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("SELECT game_name FROM games WHERE game_name = %s", (game_name,))
-				result = cursor.fetchone()
+			result = self.queries.check_game_exists(conn, game_name=game_name)
 		logger.debug("Query to check if game exists executed")
 		return result
 
@@ -123,14 +123,8 @@ class Queries(commands.Cog):
 					game_name (str) - Game name
 		"""
 		logger.debug("Executing query to add game subscription")
-		query = """
-			INSERT INTO game_subscriptions (user_id, game_id)
-			VALUES ((SELECT user_id FROM users WHERE username = %s), (SELECT game_id FROM games WHERE game_name = %s))
-		"""
-		params = (user_name, game_name)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
+			self.queries.add_game_subscription(conn, user_name=user_name, game_name=game_name)
 		logger.debug("Query to add game subscription executed")
 
 	@handle_exceptions
@@ -143,17 +137,10 @@ class Queries(commands.Cog):
 		RETURNS: list - Discord IDs of subscribed users
 		"""
 		logger.debug("Executing query to get game subscriptions")
-		query = """
-			SELECT discord_id FROM users WHERE user_id IN
-			(SELECT user_id FROM game_subscriptions
-			WHERE game_id = (SELECT game_id FROM games WHERE game_name = %s))
-		"""
-		params = (game_name,)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
-				result = cursor.fetchall()
+			result = self.queries.get_game_subscriptions(conn, game_name=game_name)
 		logger.debug("Query to get game subscriptions executed")
+		# aiosql returns a list of Row objects, extract discord_id from each
 		discord_ids = [row[0] for row in result]
 		return discord_ids
 
@@ -166,15 +153,8 @@ class Queries(commands.Cog):
 					game_name (str) - Game name
 		"""
 		logger.debug("Executing query to remove game subscription")
-		query = """
-			DELETE FROM game_subscriptions
-			WHERE user_id = (SELECT user_id FROM users WHERE username = %s)
-			AND game_id = (SELECT game_id FROM games WHERE game_name = %s)
-		"""
-		params = (user_name, game_name)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
+			self.queries.remove_game_subscription(conn, user_name=user_name, game_name=game_name)
 		logger.debug("Query to remove game subscription executed")
 
 	@handle_exceptions
@@ -187,8 +167,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to update users home address")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("UPDATE users SET home_address = %s WHERE username = %s", (home_address, user_name))
+			self.queries.update_users_home_address(conn, home_address=home_address, user_name=user_name)
 		logger.debug("Query to update users home address executed")
 
 	@handle_exceptions
@@ -201,8 +180,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to update users work address")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("UPDATE users SET work_address = %s WHERE username = %s", (work_address, user_name))
+			self.queries.update_users_work_address(conn, work_address=work_address, user_name=user_name)
 		logger.debug("Query to update users work address executed")
 
 	@handle_exceptions
@@ -215,8 +193,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to update users time zone")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("UPDATE users SET time_zone = %s WHERE username = %s", (time_zone, user_name))
+			self.queries.update_users_time_zone(conn, time_zone=time_zone, user_name=user_name)
 		logger.debug("Query to update users time zone executed")
 
 	@handle_exceptions
@@ -230,9 +207,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to get users home address")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("SELECT home_address FROM users WHERE username = %s", (user_name,))
-				result = cursor.fetchone()
+			result = self.queries.get_users_home_address(conn, user_name=user_name)
 		logger.debug("Query to get users home address executed")
 		return result
 
@@ -247,9 +222,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to get users work address")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("SELECT work_address FROM users WHERE username = %s", (user_name,))
-				result = cursor.fetchone()
+			result = self.queries.get_users_work_address(conn, user_name=user_name)
 		logger.debug("Query to get users work address executed")
 		return result
 
@@ -264,9 +237,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to get users time zone")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("SELECT time_zone FROM users WHERE username = %s", (user_name,))
-				result = cursor.fetchone()
+			result = self.queries.get_users_time_zone(conn, user_name=user_name)
 		logger.debug("Query to get users time zone executed")
 		return result
 
@@ -279,8 +250,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to remove user")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("DELETE FROM users WHERE username = %s", (user_name,))
+			self.queries.remove_user_from_db(conn, user_name=user_name)
 		logger.debug("Query to remove user executed")
 
 	@handle_exceptions
@@ -292,17 +262,8 @@ class Queries(commands.Cog):
 					user_name (str) - Discord user name
 		"""
 		logger.debug("Executing query to add guild")
-		query = """
-			INSERT INTO guilds (guild_name, owner_id)
-			SELECT %s, user_id FROM users
-			WHERE username = %s AND NOT EXISTS (
-				SELECT 1 FROM guilds WHERE guild_name = %s
-			)
-		"""
-		params = (guild_name, user_name, guild_name)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
+			self.queries.add_guild(conn, guild_name=guild_name, user_name=user_name)
 		logger.debug("Query to add guild executed")
 
 	@handle_exceptions
@@ -316,9 +277,7 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to check if guild exists")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute("SELECT guild_name FROM guilds WHERE guild_name = %s", (guild_name,))
-				result = cursor.fetchone()
+			result = self.queries.check_guild_exists(conn, guild_name=guild_name)
 		logger.debug("Query to check if guild exists executed")
 		return result
 
@@ -331,16 +290,12 @@ class Queries(commands.Cog):
 		"""
 		logger.debug("Executing query to remove guild")
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				# Delete guild preferences first (foreign key constraint)
-				cursor.execute(
-					"DELETE FROM guild_preferences WHERE guild_id = (SELECT guild_id FROM guilds WHERE guild_name = %s)",
-					(guild_name,)
-				)
-				logger.debug("Query to remove guild preferences executed")
-				# Delete guild
-				cursor.execute("DELETE FROM guilds WHERE guild_name = %s", (guild_name,))
-				logger.debug("Query to remove guild executed")
+			# Delete guild preferences first (foreign key constraint)
+			self.queries.remove_guild_preferences(conn, guild_name=guild_name)
+			logger.debug("Query to remove guild preferences executed")
+			# Delete guild
+			self.queries.remove_guild(conn, guild_name=guild_name)
+			logger.debug("Query to remove guild executed")
 
 	@handle_exceptions
 	def add_guild_preferences(self, text_channel, voice_channel, shows_channel, guild_name):
@@ -353,15 +308,11 @@ class Queries(commands.Cog):
 					guild_name (str) - Guild name
 		"""
 		logger.debug("Executing query to add guild preferences")
-		query = """
-			INSERT INTO guild_preferences (text_channel, voice_channel, shows_channel, guild_id)
-			VALUES (%s, %s, %s, (SELECT guild_id FROM guilds WHERE guild_name = %s))
-			ON CONFLICT (guild_id) DO UPDATE SET text_channel = %s, voice_channel = %s, shows_channel = %s
-		"""
-		params = (text_channel, voice_channel, shows_channel, guild_name, text_channel, voice_channel, shows_channel)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
+			self.queries.add_guild_preferences(
+				conn, text_channel=text_channel, voice_channel=voice_channel, shows_channel=shows_channel,
+				guild_name=guild_name
+			)
 		logger.debug("Query to add guild preferences executed")
 
 	@handle_exceptions
@@ -374,15 +325,8 @@ class Queries(commands.Cog):
 		RETURNS: str or None - Text channel name if exists, None otherwise
 		"""
 		logger.debug("Executing query to get guilds preferred text channel")
-		query = """
-			SELECT text_channel FROM guild_preferences WHERE
-			guild_id = (SELECT guild_id FROM guilds WHERE guild_name = %s)
-		"""
-		params = (guild_name,)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
-				result = cursor.fetchone()
+			result = self.queries.get_guilds_preferred_text_channel(conn, guild_name=guild_name)
 		logger.debug("Query to get guilds preferred text channel executed")
 		return result[0] if result else None
 
@@ -396,15 +340,8 @@ class Queries(commands.Cog):
 		RETURNS: str or None - Voice channel name if exists, None otherwise
 		"""
 		logger.debug("Executing query to get guilds preferred voice channel")
-		query = """
-			SELECT voice_channel FROM guild_preferences WHERE
-			guild_id = (SELECT guild_id FROM guilds WHERE guild_name = %s)
-		"""
-		params = (guild_name,)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
-				result = cursor.fetchone()
+			result = self.queries.get_guilds_preferred_voice_channel(conn, guild_name=guild_name)
 		logger.debug("Query to get guilds preferred voice channel executed")
 		return result[0] if result else None
 
@@ -418,15 +355,8 @@ class Queries(commands.Cog):
 		RETURNS: str or None - Shows channel name if exists, None otherwise
 		"""
 		logger.debug("Executing query to get guilds preferred shows channel")
-		query = """
-			SELECT shows_channel FROM guild_preferences WHERE
-			guild_id = (SELECT guild_id FROM guilds WHERE guild_name = %s)
-		"""
-		params = (guild_name,)
 		with self.db_service.get_connection() as conn:
-			with self.db_service.get_cursor(conn) as cursor:
-				cursor.execute(query, params)
-				result = cursor.fetchone()
+			result = self.queries.get_guilds_preferred_shows_channel(conn, guild_name=guild_name)
 		logger.debug("Query to get guilds preferred shows channel executed")
 		return result[0] if result else None
 

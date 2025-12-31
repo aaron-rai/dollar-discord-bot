@@ -1,3 +1,4 @@
+aiosql
 beautifulsoup4
 discord.py
 lyricsgenius
@@ -7,6 +8,5 @@ psutil
 psycopg2
 python-dotenv
 requests
-redis
 spotipy
 wavelink

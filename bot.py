@@ -1,26 +1,40 @@
 """
 DESCRIPTION: Creates UnfilteredBot, loads exts, connects to db, runs tasks, and client events. Location of the main bot loop.
 """
-from functions import GeneralFunctions
-from functions import AutoChannelCreation
-from functions import Queries
-from functions import PushNotifications
-from functions.common.database import initialize_database, get_database_service
-import functions.common.libraries as lib
+import time
+import discord
+import dotenv
+import wavelink
+from discord.ext import commands, tasks
 
-lib.load_dotenv()
+from functions.core.autochannelcreation import AutoChannelCreation
+from functions.core.config import config
+from functions.core.database import initialize_database, get_database_service
+from functions.core.embeds import send_patch_notes, send_embed, send_embed_error
+from functions.core.errors import ERROR_MAPPING
+from functions.core.utils import setup_logger
+from functions.notifications.push_notifications import PushNotifications
+from functions.queries.queries import Queries
+
+dotenv.load_dotenv()
 
 exts: list = [
-	"functions.diagnostic.debugging", "functions.game.gamecommands", "functions.music.musiccommands", "functions.admin.admin",
-	"functions.queries.queries", "functions.diagnostic.settings", "functions.notifications.push_notifications"
+	"functions.diagnostic.debugging", "functions.music.musiccommands", "functions.admin.admin", "functions.queries.queries",
+	"functions.diagnostic.settings", "functions.notifications.push_notifications"
 ]
 
 
-class UnfilteredBot(lib.commands.Bot):
+class UnfilteredBot(commands.Bot):
 	"""
 	DESCRIPTION: Creates UnfilteredBot, loads exts, connects to db
 	PARAMETERS: commands.Bot - Discord Commands
 	"""
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.guild_text_channels = {}
+		self.guild_voice_channels = {}
+		self.start_time = time.time()
 
 	async def process_commands(self, message):
 		ctx = await self.get_context(message)
@@ -56,12 +70,9 @@ class UnfilteredBot(lib.commands.Bot):
 		get_database_service().close_pool()
 
 
-client = UnfilteredBot(command_prefix="!", intents=lib.discord.Intents.all(), help_command=None)
+client = UnfilteredBot(command_prefix="!", intents=discord.Intents.all(), help_command=None)
 
-logger = GeneralFunctions.setup_logger("dollar")
-
-DISCORD_TOKEN = lib.os.getenv("TOKEN")
-LAVALINK_TOKEN = lib.os.getenv("LAVALINK_TOKEN")
+logger = setup_logger("dollar")
 
 # Initialize database service
 db_service = initialize_database(max_retries=5)
@@ -78,14 +89,14 @@ async def connect_nodes():
 	await client.wait_until_ready()
 	#NOTE: Connect to Wavelink
 	nodes = [
-		lib.wavelink.Node(
-			uri="http://lavalink:2333", password=LAVALINK_TOKEN, identifier="MAIN", retries=None, heartbeat=60,
+		wavelink.Node(
+			uri="http://lavalink:2333", password=config.LAVALINK_TOKEN, identifier="MAIN", retries=None, heartbeat=60,
 			inactive_player_timeout=600
 		)
 	]
-	await lib.wavelink.Pool.connect(nodes=nodes, client=client, cache_capacity=100)
+	await wavelink.Pool.connect(nodes=nodes, client=client, cache_capacity=100)
 	logger.info(f"Node: <{nodes}> is ready")
-	await client.change_presence(activity=lib.discord.Game(name=" All the Hits! | /help"))
+	await client.change_presence(activity=discord.Game(name=f"Code Cleanup! | v{config.VERSION}"))
 	logger.info("=== Dollar is ready ===")
 
 
@@ -93,7 +104,7 @@ async def connect_nodes():
 # Tasks
 
 
-@lib.tasks.loop(seconds=60)
+@tasks.loop(seconds=60)
 async def validate_db():
 	"""
 	DESCRIPTION: Periodically validate the database connection
@@ -113,16 +124,16 @@ async def on_ready():
 	client.loop.create_task(connect_nodes())
 	validate_db.start()
 
-	if lib.SEND_PATCH_NOTES:
-		await GeneralFunctions.send_patch_notes(client)
+	if config.SEND_PATCH_NOTES:
+		await send_patch_notes(client)
 	else:
 		logger.warning("Skipped patch notes!")
 
 	for guild in client.guilds:
-		lib.guild_text_channels[str(guild)] = queries.get_guilds_preferred_text_channel(str(guild))
-		lib.guild_voice_channels[str(guild)] = queries.get_guilds_preferred_voice_channel(str(guild))
+		client.guild_text_channels[str(guild)] = queries.get_guilds_preferred_text_channel(str(guild))
+		client.guild_voice_channels[str(guild)] = queries.get_guilds_preferred_voice_channel(str(guild))
 
-	logger.info(f"Cached text and voice channels, text: {lib.guild_text_channels}, voice: {lib.guild_voice_channels}")
+	logger.info(f"Cached text and voice channels, text: {client.guild_text_channels}, voice: {client.guild_voice_channels}")
 
 
 @client.event
@@ -240,9 +251,9 @@ async def on_member_join(member):
 			await channel.send(f"Welcome {member.mention} to {guild.name}!")
 			queries.add_user_to_db(user_id, str(member))
 			logger.info(f"Sent welcome message to {member} in {guild}")
-		except lib.discord.Forbidden:
+		except discord.Forbidden:
 			logger.warning(f"Could not send message to {channel.name} in {guild.name}. Missing permissions.")
-		except lib.discord.HTTPException:
+		except discord.HTTPException:
 			logger.error(f"Could not send message to {channel.name} in {guild.name}. HTTP exception occurred.")
 
 
@@ -261,9 +272,9 @@ async def on_member_remove(member):
 		try:
 			await channel.send(f"{member.mention} has left {guild.name}. Bye Felicia")
 			logger.info(f"Sent leave message to {member} in {guild}")
-		except lib.discord.Forbidden:
+		except discord.Forbidden:
 			logger.warning(f"Could not send message to {channel.name} in {guild.name}. Missing permissions.")
-		except lib.discord.HTTPException:
+		except discord.HTTPException:
 			logger.error(f"Could not send message to {channel.name} in {guild.name}. HTTP exception occurred.")
 
 
@@ -284,8 +295,8 @@ async def on_raw_reaction_add(payload):
 		game_name = str(message.embeds[0].author.name)
 
 	#NOTE: Add subscription to game
-	if reaction == "🔔" and int(channel_id) == int(lib.PATCHES_CHANNEL):
-		logger.debug(f"{user_name} reacted with {reaction} to {game_name}")
+	if reaction == "🔔" and int(channel_id) == int(config.PATCHES_CHANNEL):
+		logger.info(f"{user_name} reacted with {reaction} to {game_name}")
 		game_result = queries.check_if_game_exists(game_name)
 
 		if game_result is None:
@@ -298,8 +309,8 @@ async def on_raw_reaction_add(payload):
 		await payload.member.send(f"Subscribed to {game_name} notifications!")
 
 	#NOTE: Remove subscription to game
-	elif reaction == "🔕" and int(channel_id) == int(lib.PATCHES_CHANNEL):
-		logger.debug(f"{user_name} reacted with {reaction} to {game_name}")
+	elif reaction == "🔕" and int(channel_id) == int(config.PATCHES_CHANNEL):
+		logger.info(f"{user_name} reacted with {reaction} to {game_name}")
 		game_result = queries.check_if_game_exists(game_name)
 		user_result = queries.check_if_user_exists(user_name)
 
@@ -323,17 +334,16 @@ async def on_message(message):
 	channel = str(message.channel)
 	author = message.author
 	guild = message.guild
-	guild_text_channel = lib.guild_text_channels.get(str(guild))
+	guild_text_channel = client.guild_text_channels.get(str(guild))
 
 	#NOTE: DMs to Dollar
-	if isinstance(message.channel, lib.discord.channel.DMChannel) and message.author != client.user:
+	if isinstance(message.channel, discord.channel.DMChannel) and message.author != client.user:
 		logger.info(f"{author} sent a DM to Dollar")
-		msg = '''Checkout this readme:
-		(https://github.com/aaron-rai/dollar-discord-bot/blob/main/README.md)'''
-		await GeneralFunctions.send_embed("Welcome to Dollar", "dollar.png", msg, message.author)
+		msg = "Dollar does not currently support DMs. Please consult the documentation here https://aaron-rai.github.io/dollar-discord-bot/"
+		await send_embed("Dollar DM", "dollar.png", msg, message.author)
 
 	#NOTE: Game update notifications in #patches in mfDiscord
-	if str(message.channel.id) == str(lib.PATCHES_CHANNEL):
+	if str(message.channel.id) == str(config.PATCHES_CHANNEL):
 		try:
 			embed_title = str(message.embeds[0].author.name)
 			logger.info(f"Game update detected: {embed_title}, channel id: {message.channel.id}, message id: {message.id}")
@@ -369,7 +379,7 @@ async def on_voice_state_update(member, before, after):
 				after - Discord VoiceState
 	"""
 	guild = member.guild
-	join_channel = AutoChannelCreation.get_join_channel(guild)
+	join_channel = AutoChannelCreation.get_join_channel(guild, client)
 
 	if not join_channel:
 		return
@@ -406,14 +416,14 @@ async def on_command_error(ctx, error):
 	"""
 	error_type = type(error)
 
-	if error_type in lib.ERROR_MAPPING:
-		title, log_message = lib.ERROR_MAPPING[error_type]
-		await GeneralFunctions.send_embed_error(title, str(error), ctx)
+	if error_type in ERROR_MAPPING:
+		title, log_message = ERROR_MAPPING[error_type]
+		await send_embed_error(title, str(error), ctx)
 		logger.error(log_message.format(ctx=ctx))
 	else:
 		msg = "An unexpected error occurred while processing your command. Please use /reportbug."
-		await GeneralFunctions.send_embed_error("Unexpected Error", msg, ctx)
+		await send_embed_error("Unexpected Error", msg, ctx)
 		logger.exception("Unexpected error occurred", exc_info=error)
 
 
-client.run(DISCORD_TOKEN)
+client.run(config.DISCORD_TOKEN)
