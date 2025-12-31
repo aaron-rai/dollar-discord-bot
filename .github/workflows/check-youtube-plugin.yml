@@ -1,0 +1,97 @@
+name: Check YouTube Plugin Version
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM (matching Dependabot schedule)
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get current version from application.yml
+        id: current
+        run: |
+          CURRENT_VERSION=$(grep -A 1 'dependency: "dev.lavalink.youtube:youtube-plugin:' application.yml | grep -oP ':\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current YouTube plugin version: $CURRENT_VERSION"
+
+      - name: Get latest version from GitHub releases
+        id: latest
+        run: |
+          LATEST_VERSION=$(curl -s https://api.github.com/repos/lavalink-devs/youtube-source/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "Latest YouTube plugin version: $LATEST_VERSION"
+
+      - name: Compare versions and create issue if outdated
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          LATEST="${{ steps.latest.outputs.version }}"
+
+          if [ "$CURRENT" != "$LATEST" ]; then
+            echo "Version mismatch detected: $CURRENT → $LATEST"
+
+            # Check if an issue already exists
+            EXISTING_ISSUE=$(gh issue list --label "dependencies,youtube-plugin" --state open --json number,title --jq '.[] | select(.title | contains("YouTube Plugin")) | .number' | head -n 1)
+
+            if [ -n "$EXISTING_ISSUE" ]; then
+              echo "Issue #$EXISTING_ISSUE already exists for YouTube plugin update"
+              # Update existing issue with new comment
+              gh issue comment "$EXISTING_ISSUE" --body "🔄 New version available: **$LATEST** (current: $CURRENT)
+
+              Check the release notes: https://github.com/lavalink-devs/youtube-source/releases/tag/v$LATEST"
+            else
+              # Create new issue
+              gh issue create \
+                --title "Update YouTube Plugin to v$LATEST" \
+                --label "dependencies,youtube-plugin" \
+                --body "## 🎵 YouTube Plugin Update Available
+
+              A new version of the Lavalink YouTube plugin is available.
+
+              - **Current version**: \`$CURRENT\`
+              - **Latest version**: \`$LATEST\`
+
+              ### Update Instructions
+
+              1. Review the release notes: https://github.com/lavalink-devs/youtube-source/releases/tag/v$LATEST
+              2. Update \`application.yml\` line 23:
+                 \`\`\`yaml
+                 - dependency: \"dev.lavalink.youtube:youtube-plugin:$LATEST\"
+                 \`\`\`
+              3. Test the update in development environment
+              4. Rebuild and deploy: \`./scripts/rebuild-and-prune.sh\`
+
+              ### Maven Repository
+              https://maven.lavalink.dev/releases/dev/lavalink/youtube/youtube-plugin/
+
+              ---
+              *This issue was automatically created by the [Check YouTube Plugin Version workflow](${{ github.server_url }}/${{ github.repository }}/actions/workflows/check-youtube-plugin.yml)*"
+
+              echo "✅ Created new issue for YouTube plugin update"
+            fi
+          else
+            echo "✅ YouTube plugin is up to date ($CURRENT)"
+          fi
+
+      - name: Check for pre-release versions
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=$(curl -s https://api.github.com/repos/lavalink-devs/youtube-source/releases | jq -r '[.[] | select(.prerelease == true)] | first | .tag_name // empty' | sed 's/^v//')
+
+          if [ -n "$PRERELEASE" ]; then
+            echo "ℹ️ Pre-release version available: $PRERELEASE"
+            echo "Check it out at: https://github.com/lavalink-devs/youtube-source/releases"
+          fi

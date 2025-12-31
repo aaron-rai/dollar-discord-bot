@@ -1,12 +1,10 @@
 aiosql
-beautifulsoup4
 discord.py
 lyricsgenius
-mysql-connector-python
-pandas
 psutil
 psycopg2
 python-dotenv
+pytz
 requests
 spotipy
 wavelink
