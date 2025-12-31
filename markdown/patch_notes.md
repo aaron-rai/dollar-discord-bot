@@ -24,3 +24,7 @@
 - **Smoother Updates** - Future feature releases will be more stable
 - **Better Performance** - Optimized code and database queries mean faster response times
 - **Easier Troubleshooting** - Improved logging and error messages help identify issues quickly
+
+#### Deprecated Features
+
+- Removed GameCommands completely due to low usage, maintenance overhead and changes to TRACKERGG and RIOT APIs. Once a more stable API is available, GameCommands may be reintroduced in a future update.
