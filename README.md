@@ -3,7 +3,6 @@
 
 <p align="center">
     <img src="https://img.shields.io/badge/author-aaronrai-blue" alt="Author Badge">
-    <img src="https://img.shields.io/badge/version-2.0.4-purple" alt="Version Badge">
     <img src="https://img.shields.io/badge/PyLint-Passing-brightgreen" alt="Pylint Status Badge">
     <img src="https://github.com/aaron-rai/dollar-discord-bot/actions/workflows/runner.yml/badge.svg " alt="CI Badge">
     <img src="https://img.shields.io/badge/license-MIT-red" alt="License Badge">
@@ -30,6 +29,14 @@ Stay tuned for frequent updates and exciting new features as Dollar continually 
 For detailed installation instructions and troubleshooting, see the [Installation Guide](https://aaron-rai.github.io/dollar-discord-bot/docs/installation).
 
 ## Contributing
+
+### Python Environment Setup
+- To contribute to the project, you must first set up a Python environment with the required dependencies.
+- To install the dependencies, run the following command:
+
+```bash
+cd scripts && pip install -r requirements.txt
+```
 
 ### Docker Setup
 
@@ -63,22 +70,6 @@ Linux:
 
 - The `.env.template` file contains the environment variables that the bot requires to run.
 - To run the bot, you must create a `.env` file in the root directory and populate it with the required environment variables.
-
-### Debugging
-
-For debugging purposes do not rely on the console output, and turn to the `discord.log` instead.
-
-Summary of loggers:
-- administrative: Relates to administrative commands
-- auto-channel-creation: Relates to auto channel creation
-- core: General logger that is used in Dollar's core functions that are used repeatedly
-- diagnostic: Relates to Dollar diagnostic commands that are ADMIN only. Ensures diagnostic commands are working properly
-- dollar: General logger that is used in Dollar's core functions that are used repeatedly
-- game: Relates to game commands
-- music: Relates to music related commands and functions
-- notifications: Relates to notifications
-- queries: Relates to database queries
-- settings: Relates to settings commands
 
 ## Documentation Contribution Guidelines
 

@@ -1,48 +1,51 @@
 """
 DESCRIPTION: Admin/Mod only commands reside here
 """
-from ..common.generalfunctions import GeneralFunctions
-from ..common import libraries as lib
 
-logger = GeneralFunctions.setup_logger("administrative")
+import discord
+from discord.ext import commands
+from functions.core.embeds import create_embed
+from functions.core.utils import setup_logger, modal_error_check
+
+logger = setup_logger("administrative")
 
 
-class EmbedCreatorModal(lib.discord.ui.Modal, title="Embed Creator"):
+class EmbedCreatorModal(discord.ui.Modal, title="Embed Creator"):
 	"""
 	DESCRIPTION: Creates EmbedCreatorModal class
-	PARAMETERS: lib.discord.ui.Modal - Discord UI Modal
+	PARAMETERS: discord.ui.Modal - Discord UI Modal
 	"""
 
 	def __init__(self):
 		super().__init__()
 
-	embed_title = lib.discord.ui.TextInput(label="Embed Title", required=True)
-	embed_description = lib.discord.ui.TextInput(label="Embed Description", required=True)
-	embed_image_url = lib.discord.ui.TextInput(label="Embed Image URL", required=False)
-	embed_footer = lib.discord.ui.TextInput(label="Embed Footer", required=False)
+	embed_title = discord.ui.TextInput(label="Embed Title", required=True)
+	embed_description = discord.ui.TextInput(label="Embed Description", required=True)
+	embed_image_url = discord.ui.TextInput(label="Embed Image URL", required=False)
+	embed_footer = discord.ui.TextInput(label="Embed Footer", required=False)
 
-	async def on_submit(self, interaction: lib.discord.Interaction):
+	async def on_submit(self, interaction: discord.Interaction):
 		"""
 		DESCRIPTION: Creates Embed
 		PARAMETERS: interaction - Discord Interaction
 		"""
-		embed = GeneralFunctions.create_embed(
-			title=self.embed_title.value, author=interaction.user, image=self.embed_image_url.value,
-			description=self.embed_description.value, footer=self.embed_footer.value
+		embed = create_embed(
+			title=self.embed_title.value, description=self.embed_description.value, author=interaction.user,
+			image=self.embed_image_url.value, footer=self.embed_footer.value
 		)
 		await interaction.response.send_message(embed=embed)
 
-	async def on_error(self, interaction: lib.discord.Interaction, error: Exception) -> None:
+	async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
 		"""
 		DESCRIPTION: Fires on error of Settings Modal
 		PARAMETERS: discord.Interaction - Discord Interaction
 		"""
-		message = GeneralFunctions.modal_error_check(error)
+		message = modal_error_check(error)
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
 
-class Admin(lib.commands.Cog):
+class Admin(commands.Cog):
 	"""
 	DESCRIPTION: Creates Admin class
 	PARAMETERS: commands.Bot - Discord Commands
@@ -50,11 +53,10 @@ class Admin(lib.commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.general_functions = GeneralFunctions()
 
 	# Clear Messages from channel, ex !clear 50
-	@lib.commands.command(aliases=["purge", "delete"])
-	@lib.commands.is_owner()
+	@commands.command(aliases=["purge", "delete"])
+	@commands.is_owner()
 	async def clear(self, ctx, amount=None):
 		"""
 		DESCRIPTION: Clears messages from channel
@@ -72,8 +74,8 @@ class Admin(lib.commands.Cog):
 				await ctx.channel.purge(limit=val)
 				logger.info(f"Removed {val} messages")
 
-	@lib.commands.command()
-	@lib.commands.is_owner()
+	@commands.command()
+	@commands.is_owner()
 	async def reload(self, ctx, extension):
 		"""
 		DESCRIPTION: Reloads a cog
@@ -90,8 +92,8 @@ class Admin(lib.commands.Cog):
 			await ctx.send(f"Error reloading {extension}, Cause: {e}")
 			logger.error(f"Error reloading {extension}: {e}")
 
-	@lib.discord.app_commands.command(name="embedcreator", description="Create an Embed")
-	async def embed_creator(self, interaction: lib.discord.Interaction):
+	@discord.app_commands.command(name="embedcreator", description="Create an Embed")
+	async def embed_creator(self, interaction: discord.Interaction):
 		"""
 		DESCRIPTION: Creates an Embed
 		PARAMETERS: interaction - Discord Interaction

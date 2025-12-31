@@ -2,12 +2,24 @@
 DESCRIPTION: Debugging functions reside here
 """
 #pylint: disable=useless-parent-delegation
-from ..common.libraries import (
-	discord, os, commands, threading, traceback, sys, time, psutil, asyncio, requests, json, logging, START_TIME, GITHUB_TOKEN
-)
-from ..common.generalfunctions import GeneralFunctions
+import discord
+import os
+import threading
+import traceback
+import logging
+import sys
+import time
+import psutil
+import asyncio
+import requests
+import json
 
-logger = GeneralFunctions.setup_logger("diagnostic")
+from discord.ext import commands
+from functions.core.config import config
+from functions.core.embeds import create_embed
+from functions.core.utils import setup_logger, modal_error_check, get_bot_member
+
+logger = setup_logger("diagnostic")
 
 
 class ReportBugModel(discord.ui.Modal, title="Report Bug"):
@@ -39,13 +51,13 @@ class ReportBugModel(discord.ui.Modal, title="Report Bug"):
 
 		repository = "dollar-discord-bot"
 		owner = "aaron-rai"
-		access_token = GITHUB_TOKEN
+		access_token = config.GITHUB_TOKEN
 
 		url = f"https://api.github.com/repos/{owner}/{repository}/issues"
 
 		headers = {"Authorization": f"token {access_token}"}
 
-		response = requests.post(url, headers=headers, data=json.dumps(payload))
+		response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
 
 		if response.status_code == 201:
 			logger.info("Added bug report to GitHub issues")
@@ -59,7 +71,7 @@ class ReportBugModel(discord.ui.Modal, title="Report Bug"):
 		DESCRIPTION: Fires on error of Settings Modal
 		PARAMETERS: discord.Interaction - Discord Interaction
 		"""
-		message = GeneralFunctions.modal_error_check(error)
+		message = modal_error_check(error)
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
@@ -93,13 +105,13 @@ class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
 
 		repository = "dollar-discord-bot"
 		owner = "aaron-rai"
-		access_token = GITHUB_TOKEN
+		access_token = config.GITHUB_TOKEN
 
 		url = f"https://api.github.com/repos/{owner}/{repository}/issues"
 
 		headers = {"Authorization": f"token {access_token}"}
 
-		response = requests.post(url, headers=headers, data=json.dumps(payload))
+		response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
 
 		if response.status_code == 201:
 			logger.info("Added feature request to GitHub issues")
@@ -113,7 +125,7 @@ class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
 		DESCRIPTION: Fires on error of Settings Modal
 		PARAMETERS: discord.Interaction - Discord Interaction
 		"""
-		message = GeneralFunctions.modal_error_check(error)
+		message = modal_error_check(error)
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
@@ -127,7 +139,6 @@ class HelpView(discord.ui.View):
 	def __init__(self):
 		super().__init__()
 		self.add_item(MyButton(label="Music", style=discord.ButtonStyle.green, custom_id="music"))
-		# self.add_item(MyButton(label="Game", style=discord.ButtonStyle.blurple, custom_id="game")) #TODO: Fix Game Commands and uncomment
 		self.add_item(MyButton(label="Context Menu", style=discord.ButtonStyle.blurple, custom_id="context"))
 		self.add_item(MyButton(label="Slash", style=discord.ButtonStyle.red, custom_id="slash"))
 
@@ -143,7 +154,7 @@ class MyButton(discord.ui.Button):
 		DESCRIPTION: Fires on button click
 		PARAMETERS: interaction - Discord Interaction
 		"""
-		dollar = await GeneralFunctions.get_bot_member(interaction.guild, interaction.client)
+		dollar = await get_bot_member(interaction.guild, interaction.client)
 		command_type = str(self.custom_id)
 
 		if command_type:
@@ -160,7 +171,7 @@ class MyButton(discord.ui.Button):
 		try:
 			with open(file_path, "r", encoding="utf-8") as file:
 				dollar_commands = file.read()
-				embed = GeneralFunctions.create_embed(f"{command_type.capitalize()} Commands", dollar_commands, dollar)
+				embed = create_embed(f"{command_type.capitalize()} Commands", dollar_commands, dollar)
 				await interaction.response.send_message(embed=embed)
 		except FileNotFoundError:
 			logger.error(f"File {file_path} not found")
@@ -183,7 +194,7 @@ class Debugging(commands.Cog):
 		DESCRIPTION: Check dollar diagnostics, CPU, RAM, Uptime
 		PARAMETERS: interaction - Discord interaction
 		"""
-		uptime = time.time() - START_TIME
+		uptime = time.time() - interaction.client.start_time
 		uptime_days = uptime // (24 * 3600)
 		uptime = uptime % (24 * 3600)
 		uptime_hours = uptime // 3600

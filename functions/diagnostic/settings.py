@@ -1,14 +1,15 @@
 """
 Dollar Customization Settings
 """
+import discord
 
-from ..common.generalfunctions import GeneralFunctions
-from ..common import libraries as lib
+from discord.ext import commands
+from functions.core.utils import setup_logger, modal_error_check, is_guild_owner_interaction
 
-logger = GeneralFunctions.setup_logger("settings")
+logger = setup_logger("settings")
 
 
-class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
+class SettingsModal(discord.ui.Modal, title="DollarSettings"):
 	"""
 	DESCRIPTION: Creates Settings Modal
 	PARAMETERS: discord.ui.Modal - Discord Modal
@@ -18,9 +19,9 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 		super().__init__()
 		self.queries = queries
 
-	text_channel = lib.discord.ui.TextInput(label="Text Channel", placeholder="Enter Preferred Text Channel Name", required=True)
-	voice_channel = lib.discord.ui.TextInput(label="Voice Channel", placeholder="Enter Preferred Voice Channel Name", required=True)
-	shows_channel = lib.discord.ui.TextInput(label="Shows Channel", placeholder="Enter Preferred Shows Channel Name", required=True)
+	text_channel = discord.ui.TextInput(label="Text Channel", placeholder="Enter Preferred Text Channel Name", required=True)
+	voice_channel = discord.ui.TextInput(label="Voice Channel", placeholder="Enter Preferred Voice Channel Name", required=True)
+	shows_channel = discord.ui.TextInput(label="Shows Channel", placeholder="Enter Preferred Shows Channel Name", required=True)
 
 	async def create_channels(self, guild, text_channel_value, voice_channel_value, shows_channel_value):
 		"""
@@ -49,7 +50,7 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 		else:
 			logger.warning(f"Shows channel '{shows_channel_value}' already exists in guild {guild}")
 
-	async def on_submit(self, interaction: lib.discord.Interaction):
+	async def on_submit(self, interaction: discord.Interaction):
 		"""
 		DESCRIPTION: Fires on submit of Settings Modal
 		PARAMETERS: discord.Interaction - Discord Interaction
@@ -77,8 +78,9 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 			self.queries.add_guild_preferences(text_channel_value, voice_channel_value, shows_channel_value, str(guild))
 
 		#NOTE: Update text, voice channel caches
-		lib.guild_text_channels[str(guild)] = text_channel_value
-		lib.guild_voice_channels[str(guild)] = voice_channel_value
+		bot = interaction.client
+		bot.guild_text_channels[str(guild)] = text_channel_value
+		bot.guild_voice_channels[str(guild)] = voice_channel_value
 		logger.debug(f"Text and voice channel caches updated for guild {guild_id}")
 
 		await interaction.response.send_message("Settings Saved! Creating your channels", ephemeral=True)
@@ -86,17 +88,17 @@ class SettingsModal(lib.discord.ui.Modal, title="DollarSettings"):
 		await self.create_channels(guild, text_channel_value, voice_channel_value, shows_channel_value)
 		logger.info(f"Dollar Settings saved for guild {guild_id}")
 
-	async def on_error(self, interaction: lib.discord.Interaction, error: Exception) -> None:
+	async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
 		"""
 		DESCRIPTION: Fires on error of Settings Modal
 		PARAMETERS: discord.Interaction - Discord Interaction
 		"""
-		message = GeneralFunctions.modal_error_check(error)
+		message = modal_error_check(error)
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
 
-class UserInfoModal(lib.discord.ui.Modal, title="UserInfo"):
+class UserInfoModal(discord.ui.Modal, title="UserInfo"):
 	"""
 	DESCRIPTION: Creates UserInfo Modal
 	PARAMETERS: discord.ui.Modal - Discord Modal
@@ -106,13 +108,13 @@ class UserInfoModal(lib.discord.ui.Modal, title="UserInfo"):
 		super().__init__()
 		self.queries = queries
 
-	home_address = lib.discord.ui.TextInput(label="Home Address", placeholder="Enter Home Address", required=True)
-	work_address = lib.discord.ui.TextInput(label="Work Address", placeholder="Enter Work Address", required=True)
-	time_zone = lib.discord.ui.TextInput(
+	home_address = discord.ui.TextInput(label="Home Address", placeholder="Enter Home Address", required=True)
+	work_address = discord.ui.TextInput(label="Work Address", placeholder="Enter Work Address", required=True)
+	time_zone = discord.ui.TextInput(
 		label="Time Zone", placeholder="Enter timezone (Eastern/Central/Mountain/Pacific)", required=True, max_length=8
 	)
 
-	async def on_submit(self, interaction: lib.discord.Interaction):
+	async def on_submit(self, interaction: discord.Interaction):
 		"""
 		DESCRIPTION: Fires on submit of UserInfo Modal
 		PARAMETERS: discord.Interaction - Discord Interaction
@@ -149,17 +151,17 @@ class UserInfoModal(lib.discord.ui.Modal, title="UserInfo"):
 			"Thanks! This data will never be shared and will be stored securely.", ephemeral=True
 		)
 
-	async def on_error(self, interaction: lib.discord.Interaction, error: Exception) -> None:
+	async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
 		"""
 		DESCRIPTION: Fires on error of Settings Modal
 		PARAMETERS: discord.Interaction - Discord Interaction
 		"""
-		message = GeneralFunctions.modal_error_check(error)
+		message = modal_error_check(error)
 		await interaction.response.send_message(message, ephemeral=True)
 		logger.error(f"An error occurred: {error}")
 
 
-class Settings(lib.commands.Cog):
+class Settings(commands.Cog):
 	"""
 	DESCRIPTION: Creates Settings class and commands
 	PARAMETERS: commands.Bot - Discord
@@ -168,14 +170,14 @@ class Settings(lib.commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
-	@lib.discord.app_commands.command(name="dollarsettings", description="Change Dollar Settings")
-	async def settings(self, interaction: lib.discord.Interaction):
+	@discord.app_commands.command(name="dollarsettings", description="Change Dollar Settings")
+	async def settings(self, interaction: discord.Interaction):
 		"""
 		DESCRIPTION: Creates Settings command
 		PARAMETERS: discord.Interaction - Discord Interaction
 		"""
 		logger.debug(f"Creating Settings Modal for user: {interaction.user.name}")
-		is_guild_owner = GeneralFunctions.is_guild_owner_interaction()
+		is_guild_owner = is_guild_owner_interaction()
 		if not is_guild_owner:
 			await interaction.response.send_message("You must be the server owner to change settings", ephemeral=True)
 		else:
@@ -183,8 +185,8 @@ class Settings(lib.commands.Cog):
 			queries_cog = self.bot.get_cog("Queries")
 			await interaction.response.send_modal(SettingsModal(queries_cog))
 
-	@lib.discord.app_commands.command(name="updateuserinfo", description="Update Your User Information")
-	async def userinformation(self, interaction: lib.discord.Interaction):
+	@discord.app_commands.command(name="updateuserinfo", description="Update Your User Information")
+	async def userinformation(self, interaction: discord.Interaction):
 		"""
 		DESCRIPTION: Creates UserInfo command
 		PARAMETERS: discord.Interaction - Discord Interaction

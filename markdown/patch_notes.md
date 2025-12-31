@@ -1,24 +1,26 @@
-- 2.0.4 introduces major database improvements, comprehensive documentation updates, and code quality enhancements for better reliability and maintainability.
+- **Version 2.0.5** brings major behind-the-scenes improvements for better reliability and performance!
 
-### Database Improvements
+### What's New
 
-- **New DatabaseService class** with proper connection pooling and context managers for safe resource cleanup
-- **Refactored all database queries** to use the new connection pooling system, eliminating connection leaks
-- Fixed database connection race condition on container startup with retry logic and exponential backoff
-- Updated docker-compose.yml to use health checks, ensuring PostgreSQL is fully ready before bot starts
-- Pinned PostgreSQL to version 15 for stability
-- Added fail-fast behavior if database connection fails after all retry attempts
+- **Improved Stability** - Refactored internal code architecture to reduce bugs and crashes
+- **Faster Startup** - Optimized bot initialization and configuration loading
+- **Better Error Handling** - Clearer error messages when things go wrong
+- **Enhanced Reliability** - Fixed issues that could cause the bot to become unresponsive
+- **Improved Database Performance** - Optimized database queries for faster response times
 
-### Documentation
+### Technical Improvements (For Server Owners)
 
-- Added comprehensive **Installation Guide** with step-by-step setup instructions
-- Updated README with installation quick-start section
-- Reorganized documentation structure for better navigation
+- **Cleaner Code Organization** - Reorganized bot modules for easier maintenance and future updates
+- **Reduced Memory Usage** - Eliminated redundant code and improved resource management
+- **Better Configuration Validation** - Bot will now fail fast with helpful error messages if configuration is incorrect
+- **Separated Database Queries** - SQL queries now live in dedicated files for better maintainability
+- **Centralized Configuration** - All settings managed through a single configuration system
+- **Fixed Configuration Reload Issues** - Environment changes now properly apply on container restart
 
-### Music & Playback
+### What This Means For You
 
-- Updated Youtube-Source plugin from 1.12.0 to 1.16.0 for improved playback stability
-
-### Code Quality
-
-- Improved code organization and maintainability across multiple modules
+- **More Reliable Bot** - Less downtime and fewer unexpected errors
+- **Faster Bug Fixes** - Cleaner codebase makes it easier to identify and fix issues
+- **Smoother Updates** - Future feature releases will be more stable
+- **Better Performance** - Optimized code and database queries mean faster response times
+- **Easier Troubleshooting** - Improved logging and error messages help identify issues quickly

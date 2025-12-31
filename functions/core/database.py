@@ -3,13 +3,13 @@ DESCRIPTION: Database connection pooling and management service.
 Provides proper connection pooling with context managers for safe cursor/connection cleanup.
 """
 
-import logging
-import os
 import time
 from contextlib import contextmanager
 from psycopg2 import pool
+from functions.core.config import config
+from functions.core.utils import setup_logger
 
-logger = logging.getLogger("database")
+logger = setup_logger("database")
 
 
 class DatabaseService:
@@ -22,10 +22,11 @@ class DatabaseService:
 		"""Initialize the database service (connection pool created on first connect)."""
 		self._pool = None
 		self._connection_params = {
-			"host": os.getenv("DB_HOST", "db"),
-			"user": os.getenv("DB_USER"),
-			"password": os.getenv("DB_PW"),
-			"database": os.getenv("DB_SCHEMA"),
+			"host": config.DB_HOST,
+			"user": config.DB_USER,
+			"password": config.DB_PASSWORD,
+			"database": config.DB_SCHEMA,
+			"port": config.DB_PORT,
 			"minconn": 1,
 			"maxconn": 8
 		}
@@ -146,7 +147,7 @@ class DatabaseService:
 _DB_SERVICE = None
 
 
-def get_database_service():
+def get_database_service() -> DatabaseService:
 	"""
 	Get the global database service instance (singleton pattern).
 
@@ -159,7 +160,7 @@ def get_database_service():
 	return _DB_SERVICE
 
 
-def initialize_database(max_retries=5):
+def initialize_database(max_retries=5) -> DatabaseService:
 	"""
 	Initialize the global database service with retry logic.
 
