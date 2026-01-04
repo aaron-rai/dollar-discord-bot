@@ -1,3 +1,5 @@
+aiofiles
+aiohttp
 aiosql
 discord.py
 lyricsgenius
@@ -5,6 +7,5 @@ psutil
 psycopg2
 python-dotenv
 pytz
-requests
 spotipy
 wavelink

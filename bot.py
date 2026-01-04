@@ -7,7 +7,7 @@ import dotenv
 import wavelink
 from discord.ext import commands, tasks
 
-from functions.core.autochannelcreation import AutoChannelCreation
+from functions.core.autochannelcreation import create_personal_channel, handle_channel_leave, get_join_channel
 from functions.core.config import config
 from functions.core.database import initialize_database, get_database_service
 from functions.core.embeds import send_patch_notes, send_embed, send_embed_error
@@ -78,8 +78,8 @@ logger = setup_logger("dollar")
 db_service = initialize_database(max_retries=5)
 
 #NOTE: Declarations
-push_notifications = PushNotifications(UnfilteredBot)
-queries = Queries(UnfilteredBot)
+push_notifications = PushNotifications(client)
+queries = Queries(client)
 
 
 async def connect_nodes():
@@ -96,7 +96,7 @@ async def connect_nodes():
 	]
 	await wavelink.Pool.connect(nodes=nodes, client=client, cache_capacity=100)
 	logger.info(f"Node: <{nodes}> is ready")
-	await client.change_presence(activity=discord.Game(name=f"Code Cleanup! | v{config.VERSION}"))
+	await client.change_presence(activity=discord.Game(name=f"Very Clean! | v{config.VERSION}"))
 	logger.info("=== Dollar is ready ===")
 
 
@@ -379,7 +379,7 @@ async def on_voice_state_update(member, before, after):
 				after - Discord VoiceState
 	"""
 	guild = member.guild
-	join_channel = AutoChannelCreation.get_join_channel(guild, client)
+	join_channel = get_join_channel(guild, client)
 
 	if not join_channel:
 		return
@@ -393,18 +393,21 @@ async def on_voice_state_update(member, before, after):
 		if before.channel and after.channel:
 			#NOTE: User moved channels
 			logger.info(f"{member} moved from {before.channel} to {after.channel} in {guild}")
+			if len(before.channel.members) == 0:
+				logger.debug("Checking for hanging channels...")
+				await handle_channel_leave(before.channel)
 
 		if after.channel == join_channel:
 			try:
 				logger.debug("Checking for hanging channels...")
-				await AutoChannelCreation.handle_channel_leave(before.channel)
+				await handle_channel_leave(before.channel)
 			except AttributeError:
 				pass
 			finally:
-				await AutoChannelCreation.create_personal_channel(member, join_channel)
+				await create_personal_channel(member, join_channel)
 		elif before.channel and not after.channel:
 			logger.info(f"{member} left {before.channel} in {guild}")
-			await AutoChannelCreation.handle_channel_leave(before.channel)
+			await handle_channel_leave(before.channel)
 
 
 @client.event

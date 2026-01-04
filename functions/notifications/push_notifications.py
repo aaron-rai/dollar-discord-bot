@@ -88,6 +88,10 @@ class PushNotifications(commands.Cog):
 		users = queries_cog.get_game_subscriptions(game_name)
 		logger.debug(f"Users: {users} that are subscribed to {game_name}")
 
+		if not users:
+			logger.info(f"No users subscribed to {game_name}, skipping notification.")
+			return
+
 		thread = await message.create_thread(name=f"{game_name} Update Subscriptions")
 		for user in users:
 			logger.info(f"Sending patch note notification for user: {user}")
