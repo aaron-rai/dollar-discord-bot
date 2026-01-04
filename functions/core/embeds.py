@@ -1,6 +1,7 @@
 """
 DESCRIPTION: Common embed creation functions for the bot.
 """
+import aiofiles
 import discord
 import os
 
@@ -106,8 +107,8 @@ async def send_patch_notes(client: discord.Client) -> None:
 			desc = ""
 			file_path = os.path.join("markdown", "patch_notes.md")
 			if os.path.isfile(file_path):
-				with open(file_path, "r", encoding="utf-8") as file:
-					desc = file.read()
+				async with aiofiles.open(file_path, "r", encoding="utf-8") as file:
+					desc = await file.read()
 
 			embed = discord.Embed(
 				title=f"Version: {config.VERSION}", url="https://aaron-rai.github.io/dollar-discord-bot/", description=desc,

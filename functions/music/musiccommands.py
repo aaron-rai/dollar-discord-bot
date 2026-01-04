@@ -357,7 +357,7 @@ class Music(commands.Cog):
 				msg = f"The next song is: {search}"
 				await send_embed("Next Song...", "dollarMusic.png", msg, ctx)
 				logger.info("Printing next song in queue")
-			except:
+			except Exception:
 				msg = "The queue is currently empty, add a song by using !play or !playsc"
 				await send_embed_error("Empty Queue", msg, ctx)
 		else:
