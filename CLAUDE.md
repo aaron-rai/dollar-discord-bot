@@ -12,14 +12,18 @@ Dollar is a Discord bot that provides music playback (via Lavalink/Wavelink), mo
 
 - **bot.py**: Main entry point containing UnfilteredBot class, event handlers, and bot lifecycle management
 - **functions/**: Organized into specialized modules:
-  - `common/`: Shared utilities (GeneralFunctions, AutoChannelCreation)
-  - `music/`: Music playback commands via Wavelink
+  - `core/`: Shared infrastructure (config, database, embeds, errors, utils, auto-channel creation)
+  - `music/`: Music playback commands via Wavelink (CustomPlayer extends wavelink.Player)
   - `admin/`: Administrative/moderation commands
   - `diagnostic/`: Debugging and settings commands
-  - `game/`: Game-related commands
   - `notifications/`: Push notifications for game updates
   - `queries/`: Database query operations
-- **functions/common/libraries.py**: Central import hub for all dependencies, global variables, and environment configuration
+- **functions/core/**: Core infrastructure modules
+  - `config.py`: Environment variable loading and configuration management
+  - `database.py`: Connection pool management with context managers
+  - `embeds.py`: Discord embed creation and patch note sending
+  - `errors.py`: Central error mapping for user-friendly error messages
+  - `utils.py`: Shared utility functions including logging setup
 
 ### Extension System
 
@@ -27,7 +31,6 @@ Bot uses discord.py's cog extension system. Extensions are loaded in bot.py:
 ```python
 exts = [
     "functions.diagnostic.debugging",
-    "functions.game.gamecommands",
     "functions.music.musiccommands",
     "functions.admin.admin",
     "functions.queries.queries",
@@ -36,6 +39,8 @@ exts = [
 ]
 ```
 
+Extensions are loaded in `setup_hook()` and synced with Discord's API. Each cog is a Python class that extends `commands.Cog`.
+
 ### Database Schema
 
 PostgreSQL with schema `dollar` containing:
@@ -43,13 +48,13 @@ PostgreSQL with schema `dollar` containing:
 - `games`: Game titles for update notifications
 - `game_subscriptions`: User subscriptions to game updates
 - `guilds`: Discord servers using Dollar
-- `guild_preferences`: Per-guild text/voice channel preferences
+- `guild_preferences`: Per-guild text/voice channel preferences (text_channel, voice_channel, shows_channel)
 
-Guild-specific channel preferences are cached in `guild_text_channels` and `guild_voice_channels` dictionaries at startup.
+Guild-specific channel preferences are cached in `guild_text_channels` and `guild_voice_channels` dictionaries at startup in `on_ready()` event. Schema initialization happens automatically via `sql/init.sql` mounted as Docker entrypoint.
 
 ### Music System
 
-Uses Wavelink to connect to Lavalink audio server. CustomPlayer extends wavelink.Player with queue management. Lavalink runs in separate container (configured via application.yml) with YouTube plugin support.
+Uses Wavelink to connect to Lavalink audio server. CustomPlayer (in `functions/music/player.py`) extends wavelink.Player with queue management. Lavalink runs in separate container (configured via application.yml) with YouTube plugin v1.16.0. YouTube source is disabled in favor of the plugin which supports multiple YouTube clients (MUSIC, WEB, ANDROID_MUSIC, IOS, TV, etc.) for better reliability.
 
 ### Logging
 
@@ -69,6 +74,15 @@ Key events in bot.py:
 
 ## Development Commands
 
+### Python Environment Setup
+
+Install Python dependencies for local development:
+```bash
+cd scripts && pip install -r requirements.txt
+```
+
+Required packages: discord.py, wavelink, psycopg2, python-dotenv, lyricsgenius, spotipy, aiosql, pytz, psutil, requests
+
 ### Docker Development (Primary Method)
 
 Build and run all services (bot, lavalink, postgres):
@@ -78,7 +92,7 @@ docker compose up -d
 
 Rebuild after code changes:
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 Helper scripts for rebuild with cleanup:
@@ -87,14 +101,21 @@ Helper scripts for rebuild with cleanup:
 .\scripts\rebuild-and-prune.ps1     # Windows
 ```
 
+View logs:
+```bash
+docker logs dollar          # Bot logs
+docker logs lavalink        # Lavalink logs
+docker logs postgres        # Database logs
+```
+
 ### Linting
 
-PyLint is required and runs on all pushes via GitHub Actions:
+PyLint is required and runs on all pushes via GitHub Actions (`.github/workflows/pylint.yml`):
 ```bash
 find . -name '*.py' ! -path "./deprecated/*" | xargs pylint
 ```
 
-Configuration in `.pylintrc` (Google Python style guide based)
+Configuration in `.pylintrc` (Google Python style guide based). Runs on Python 3.10 in CI.
 
 ### Documentation
 
@@ -103,6 +124,8 @@ Docusaurus site in `docs/`:
 cd docs && npm install
 npm start  # Preview at localhost:3000
 ```
+
+Documentation is automatically deployed via GitHub Actions on pushes to main.
 
 ## Environment Configuration
 
@@ -121,22 +144,37 @@ Commands use discord.py's app_commands (slash commands). Each cog defines comman
 
 ### Error Handling
 
-Central error mapping in `libraries.py` maps exception types to user-friendly messages. `on_command_error` in bot.py handles all command errors.
+Central error mapping in `functions/core/errors.py` (ERROR_MAPPING dict) maps exception types to user-friendly messages. Maps discord.py command errors, Wavelink exceptions, and permission errors to human-readable titles and descriptions.
 
 ### Database Connections
 
-Database connection managed via psycopg2 connection pool with retry logic (5 attempts with exponential backoff). Queries class wraps all DB operations. Connection validated every 60s via `validate_db` task.
+Database connection managed via DatabaseService class (`functions/core/database.py`) using psycopg2 SimpleConnectionPool with:
+- Retry logic: 5 attempts with exponential backoff (2s initial delay)
+- Pool size: 1-8 connections
+- Context managers: `get_connection()` and `get_cursor()` ensure proper cleanup
+- Health check: `validate_db` task runs every 60s to test connection
 
-**Important**: The `main` service in docker-compose.yml uses `depends_on` with `service_healthy` condition to ensure PostgreSQL is fully ready before the bot starts. This prevents race conditions during container startup.
+**Important**: The `main` service in docker-compose.yml uses `depends_on` with `service_healthy` condition to ensure PostgreSQL is fully ready before the bot starts. The database healthcheck runs every 2s with 30 retries and 10s start period.
 
 ### Wavelink Integration
 
-Lavalink node connects at startup in `connect_nodes()`. Node URI is `http://lavalink:2333` (Docker internal networking).
+Lavalink node connects at startup in `connect_nodes()` called from `on_ready()` event. Configuration:
+- Node URI: `http://lavalink:2333` (Docker internal networking)
+- Identifier: "MAIN"
+- Heartbeat: 60s
+- Inactive player timeout: 600s (10 minutes)
+- Cache capacity: 100 tracks
+- Retries: unlimited (None)
 
 ## Important Notes
 
 - Bot requires all Discord intents (`Intents.all()`)
-- Command prefix is `!` but bot primarily uses slash commands
+- Command prefix is `!` but bot primarily uses slash commands (app_commands)
+- Commands are synced globally with Discord's API during `setup_hook()`
 - PATCHES_CHANNEL environment variable references a specific Discord channel for game update notifications
-- Auto-channel creation tracks created channels in `created_channels` set to manage cleanup
+- Auto-channel creation tracks created channels to manage cleanup
 - Patch notes are sent on startup if SEND_PATCH_NOTES=true
+- All logs written to `discord.log` with 1MB rotation (5 backups)
+- Docker containers use `America/Los_Angeles` timezone
+- Database connection pool is shared across all cogs via singleton DatabaseService
+- Bot startup sequence: load extensions → sync commands → connect to Wavelink → cache guild preferences → send patch notes (optional)

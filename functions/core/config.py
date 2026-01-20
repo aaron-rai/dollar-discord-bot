@@ -63,9 +63,13 @@ class Config():
 		self.LAVALINK_PASSWORD = self._require("LAVALINK_PASSWORD")
 		# Features
 		self.SEND_PATCH_NOTES = os.getenv("SEND_PATCH_NOTES", "").lower() == "true"
-		self.PATCHES_CHANNEL = int(os.getenv("PATCHES_CHANNEL"))
+		patches_channel = os.getenv("PATCHES_CHANNEL")
+		try:
+			self.PATCHES_CHANNEL = int(patches_channel)
+		except ValueError:
+			self.PATCHES_CHANNEL = None
 		# Version
-		self.VERSION = "2.0.5"
+		self.VERSION = "2.0.6"
 
 	@staticmethod
 	def _require(var_name: str) -> str:
