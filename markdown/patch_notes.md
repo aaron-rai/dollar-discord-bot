@@ -1,30 +1,19 @@
-- **Version 2.0.5** brings major behind-the-scenes improvements for better reliability and performance!
+- **Version 2.0.6** brings performance improvements and bug fixes for a smoother experience!
 
 ### What's New
 
-- **Improved Stability** - Refactored internal code architecture to reduce bugs and crashes
-- **Faster Startup** - Optimized bot initialization and configuration loading
-- **Better Error Handling** - Clearer error messages when things go wrong
-- **Enhanced Reliability** - Fixed issues that could cause the bot to become unresponsive
-- **Improved Database Performance** - Optimized database queries for faster response times
+- **Faster Command Responses** - Fixed performance bottlenecks that could cause delays
+- **More Reliable Bug Reporting** - Improved `/reportbug` and `/featurerequest` commands to work more consistently
+- **Better Startup Reliability** - Fixed issues that could prevent the bot from starting correctly
+- **Improved Help Command** - `/help` command now loads faster and more reliably
+- **Fixed Game Notifications** - Game update notifications now properly mention subscribed users
 
-### Technical Improvements (For Server Owners)
+### Bug Fixes
 
-- **Cleaner Code Organization** - Reorganized bot modules for easier maintenance and future updates
-- **Reduced Memory Usage** - Eliminated redundant code and improved resource management
-- **Better Configuration Validation** - Bot will now fail fast with helpful error messages if configuration is incorrect
-- **Separated Database Queries** - SQL queries now live in dedicated files for better maintainability
-- **Centralized Configuration** - All settings managed through a single configuration system
-- **Fixed Configuration Reload Issues** - Environment changes now properly apply on container restart
-
-### What This Means For You
-
-- **More Reliable Bot** - Less downtime and fewer unexpected errors
-- **Faster Bug Fixes** - Cleaner codebase makes it easier to identify and fix issues
-- **Smoother Updates** - Future feature releases will be more stable
-- **Better Performance** - Optimized code and database queries mean faster response times
-- **Easier Troubleshooting** - Improved logging and error messages help identify issues quickly
-
-#### Deprecated Features
-
-- Removed GameCommands completely due to low usage, maintenance overhead and changes to TRACKERGG and RIOT APIs. Once a more stable API is available, GameCommands may be reintroduced in a future update.
+- Fixed issue where bug reports and feature requests could fail to submit
+- Fixed startup crash when configuration values were invalid or missing
+- Resolved performance issues that could slow down the bot during heavy usage
+- Fixed channel creation reliability when users switch channels([#152](https://github.com/aaron-rai/dollar-discord-bot/issues/152))
+- Fixed game notification system not properly tagging subscribed users
+- Fixed game notification system creating threads on every notification even when no users were subscribed([#150](https://github.com/aaron-rai/dollar-discord-bot/issues/150))
+- Fixed crash when notifying users for games with no subscribers

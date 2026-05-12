@@ -50,7 +50,11 @@ class Queries(commands.Cog):
 		self.bot = bot
 		self.db_service = get_database_service()
 		# Load all queries from the sql folder
-		self.queries = aiosql.from_path(Path(__file__).parent / "sql", "psycopg2")
+		self.queries = aiosql.from_path(
+			Path(__file__).parent / "sql",
+			"psycopg2",
+			mandatory_parameters=False  # Allow queries without explicit parameter declarations
+		)
 
 	@handle_exceptions
 	#pylint: disable=too-many-positional-arguments
@@ -141,8 +145,10 @@ class Queries(commands.Cog):
 			result = self.queries.get_game_subscriptions(conn, game_name=game_name)
 		logger.debug("Query to get game subscriptions executed")
 		# aiosql returns a list of Row objects, extract discord_id from each
-		discord_ids = [row[0] for row in result]
-		return discord_ids
+		if result:
+			discord_ids = [row[0] for row in result]
+			return discord_ids
+		return []  # Return empty list if no subscribers
 
 	@handle_exceptions
 	def remove_game_subscription(self, user_name, game_name):

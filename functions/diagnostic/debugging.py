@@ -1,18 +1,14 @@
 """
 DESCRIPTION: Debugging functions reside here
 """
-#pylint: disable=useless-parent-delegation
+import io
+import aiohttp
+import aiofiles
 import discord
 import os
-import threading
-import traceback
 import logging
-import sys
 import time
 import psutil
-import asyncio
-import requests
-import json
 
 from discord.ext import commands
 from functions.core.config import config
@@ -20,114 +16,100 @@ from functions.core.embeds import create_embed
 from functions.core.utils import setup_logger, modal_error_check, get_bot_member
 
 logger = setup_logger("diagnostic")
+URL = "https://api.github.com/repos/aaron-rai/dollar-discord-bot/issues"
+ACCESS_TOKEN = config.GITHUB_TOKEN
 
 
-class ReportBugModel(discord.ui.Modal, title="Report Bug"):
+class GithubIssueModal(discord.ui.Modal):
+	"""
+	DESCRIPTION: Creates GitHub Issue Modal
+	PARAMETERS: discord.ui.modal - Discord Modal
+	"""
+
+	def __init__(self, issue_type: str, title_label: str, desc_label: str, modal_title: str):
+		super().__init__(title=modal_title)
+		self.issue_type = issue_type
+		self.title_label = discord.ui.TextInput(label=title_label, placeholder=f"Enter {issue_type} Title", required=True)
+		self.desc_label = discord.ui.TextInput(
+			label=desc_label, placeholder=f"Enter a detailed description of the {issue_type}", required=True
+		)
+		self.add_item(self.title_label)
+		self.add_item(self.desc_label)
+
+	@staticmethod
+	async def _create_github_issue(title: str, body: str, author: str, server: str, issue_type: str) -> tuple[int, str]:
+		"""
+		DESCRIPTION: Create GitHub Issue
+		PARAMETERS: title - Issue Title, body - Issue Body, author - Issue Author, server - Issue Server, type - Issue Type
+		"""
+		issue_body = f"{body}\n\nSubmitted by: {author}\nServer: {server}"
+		payload = {"title": title, "body": issue_body, "labels": [issue_type]}
+
+		headers = {"Authorization": f"token {ACCESS_TOKEN}"}
+
+		async with aiohttp.ClientSession() as session:
+			async with session.post(URL, headers=headers, json=payload) as response:
+				status = response.status
+				text = await response.text()
+				return status, text
+
+	async def on_submit(self, interaction: discord.Interaction):
+		"""
+		DESCRIPTION: Fires on submit of GitHub Issue Modal
+		PARAMETERS: interaction - Discord Interaction
+		"""
+		status, text = await self._create_github_issue(
+			self.title_label.value,
+			self.desc_label.value,
+			str(interaction.user),
+			str(interaction.guild),
+			self.issue_type,
+		)
+		if status == 201:
+			logger.info(f"Added {self.issue_type} to GitHub issues")
+			await interaction.response.send_message(f"{self.issue_type.capitalize()} submitted successfully.", ephemeral=True)
+		else:
+			await interaction.response.send_message(f"Failed to add {self.issue_type} to GitHub issues.", ephemeral=True)
+			logger.error(f"Failed to add {self.issue_type} to GitHub issues: {text}")
+
+	async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+		"""
+		DESCRIPTION: Fires on error of GitHub Issue Modal
+		PARAMETERS: discord.Interaction - Discord Interaction
+		"""
+		message = modal_error_check(error)
+		await interaction.response.send_message(message, ephemeral=True)
+		logger.error(f"An error occurred: {error}")
+
+
+class ReportBugModel(GithubIssueModal):
 	"""
 	DESCRIPTION: Creates Report Bug Model
 	PARAMETERS: discord.ui.modal - Discord Modal
 	"""
 
 	def __init__(self):
-		super().__init__()
-
-	bug_title = discord.ui.TextInput(label="Bug Title", placeholder="Enter Bug Title", required=True)
-	bug_description = discord.ui.TextInput(
-		placeholder="Enter a detailed description of the bug", label="Bug Description", required=True
-	)
-
-	async def on_submit(self, interaction: discord.Interaction):
-		"""
-		DESCRIPTION: Fires on submit of Report Bug Model
-		PARAMETERS: interaction - Discord Interaction
-		"""
-		bug_title = self.bug_title.value
-		bug_description = self.bug_description.value
-		author = interaction.user
-		server = interaction.guild
-
-		issue_body = f"Bug report: {bug_description}\n\nSubmitted by: {author}\nServer: {server}"
-		payload = {"title": bug_title, "body": issue_body, "labels": ["bug"]}
-
-		repository = "dollar-discord-bot"
-		owner = "aaron-rai"
-		access_token = config.GITHUB_TOKEN
-
-		url = f"https://api.github.com/repos/{owner}/{repository}/issues"
-
-		headers = {"Authorization": f"token {access_token}"}
-
-		response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
-
-		if response.status_code == 201:
-			logger.info("Added bug report to GitHub issues")
-			await interaction.response.send_message("Bug report submitted successfully.", ephemeral=True)
-		else:
-			await interaction.response.send_message("Failed to add bug report to GitHub issues.", ephemeral=True)
-			logger.error(f"Failed to add bug report to GitHub issues: {response.text}")
-
-	async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
-		"""
-		DESCRIPTION: Fires on error of Settings Modal
-		PARAMETERS: discord.Interaction - Discord Interaction
-		"""
-		message = modal_error_check(error)
-		await interaction.response.send_message(message, ephemeral=True)
-		logger.error(f"An error occurred: {error}")
+		super().__init__(
+			modal_title="Report Bug",
+			issue_type="bug",
+			title_label="Bug Title",
+			desc_label="Bug Description",
+		)
 
 
-class FeatureRequestModel(discord.ui.Modal, title="Feature Request"):
+class FeatureRequestModel(GithubIssueModal):
 	"""
 	DESCRIPTION: Creates Feature Request Model
 	PARAMETERS: discord.ui.modal - Discord Modal
 	"""
 
 	def __init__(self):
-		super().__init__()
-
-	feature_title = discord.ui.TextInput(label="Feature Title", placeholder="Enter Feature Title", required=True)
-	feature_description = discord.ui.TextInput(
-		placeholder="Enter a detailed description of the feature", label="Feature Description", required=True
-	)
-
-	async def on_submit(self, interaction: discord.Interaction):
-		"""
-		DESCRIPTION: Fires on submit of Feature Request Model
-		PARAMETERS: interaction - Discord Interaction
-		"""
-		feature_title = self.feature_title.value
-		feature_description = self.feature_description.value
-		author = interaction.user
-		server = interaction.guild
-
-		issue_body = f"Feature request: {feature_description}\n\nSubmitted by: {author}\nServer: {server}"
-		payload = {"title": feature_title, "body": issue_body, "labels": ["enhancement"]}
-
-		repository = "dollar-discord-bot"
-		owner = "aaron-rai"
-		access_token = config.GITHUB_TOKEN
-
-		url = f"https://api.github.com/repos/{owner}/{repository}/issues"
-
-		headers = {"Authorization": f"token {access_token}"}
-
-		response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=60)
-
-		if response.status_code == 201:
-			logger.info("Added feature request to GitHub issues")
-			await interaction.response.send_message("Feature request submitted successfully.", ephemeral=True)
-		else:
-			await interaction.response.send_message("Failed to add feature request to GitHub issues.", ephemeral=True)
-			logger.error(f"Failed to add feature request to GitHub issues: {response.text}")
-
-	async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
-		"""
-		DESCRIPTION: Fires on error of Settings Modal
-		PARAMETERS: discord.Interaction - Discord Interaction
-		"""
-		message = modal_error_check(error)
-		await interaction.response.send_message(message, ephemeral=True)
-		logger.error(f"An error occurred: {error}")
+		super().__init__(
+			modal_title="Feature Request",
+			issue_type="enhancement",
+			title_label="Feature Title",
+			desc_label="Feature Description",
+		)
 
 
 class HelpView(discord.ui.View):
@@ -161,7 +143,7 @@ class MyButton(discord.ui.Button):
 			await interaction.message.edit(view=None)
 			await self.send_commands(interaction, command_type, dollar)
 
-	async def send_commands(self, interaction, command_type, dollar):
+	async def send_commands(self, interaction: discord.Interaction, command_type: str, dollar: discord.Member) -> None:
 		"""
 		DESCRIPTION: Send commands based on command type
 		PARAMETERS: interaction - Discord Interaction, command_type - Command Type, dollar - Dollar Bot
@@ -169,8 +151,8 @@ class MyButton(discord.ui.Button):
 		logger.debug(f"Sending {command_type} commands for user {interaction.user.name}")
 		file_path = os.path.join("markdown", f"{command_type}Commands.md")
 		try:
-			with open(file_path, "r", encoding="utf-8") as file:
-				dollar_commands = file.read()
+			async with aiofiles.open(file_path, "r", encoding="utf-8") as file:
+				dollar_commands = await file.read()
 				embed = create_embed(f"{command_type.capitalize()} Commands", dollar_commands, dollar)
 				await interaction.response.send_message(embed=embed)
 		except FileNotFoundError:
@@ -203,7 +185,7 @@ class Debugging(commands.Cog):
 		uptime_formatted = f"{int(uptime_days)}d {int(uptime_hours)}h {int(uptime_minutes)}m {int(uptime_seconds)}s"
 		cpu_percent = psutil.cpu_percent()
 		ram_usage = psutil.virtual_memory().percent
-		response_message = f"Bot is currently online and running smoothly.\n\nUptime: {uptime_formatted}\nCPU Load: {cpu_percent}%\nRAM Usage: {ram_usage}%"
+		response_message = f"Uptime: {uptime_formatted}\nCPU Load: {cpu_percent}%\nRAM Usage: {ram_usage}%"
 		await interaction.response.send_message(response_message)
 
 	@discord.app_commands.command(name="reportbug", description="Report a bug to the developer")
@@ -235,48 +217,6 @@ class Debugging(commands.Cog):
 
 	@commands.command()
 	@commands.is_owner()
-	async def threaddump(self, ctx):
-		"""
-		DESCRIPTION: See Dollar's current threads
-		PARAMETERS: ctx - Discord Context
-		"""
-		logger.info("START THREAD DUMP")
-		thread_list = threading.enumerate()
-
-		existing_dumps = [file for file in os.listdir() if file.startswith("dollar-thread-dump-")]
-		max_dump_number = 0
-		for dump in existing_dumps:
-			try:
-				dump_number = int(dump.split("-")[-1].split(".")[0])
-				max_dump_number = max(max_dump_number, dump_number)
-			except ValueError:
-				pass
-
-		dump_number = max_dump_number + 1
-		dump_file_name = f"dollar-thread-dump-{dump_number}.txt"
-
-		while dump_file_name in existing_dumps:
-			dump_number += 1
-			dump_file_name = f"dollar-thread-dump-{dump_number}.txt"
-
-		with open(dump_file_name, "w", encoding="utf-8") as file:
-			for thread in thread_list:
-				file.write(f"Thread: {thread.name}\n")
-				file.write(f"Thread ID: {thread.ident}\n")  # Add thread ID
-				file.write("Thread Stack Trace:\n")
-				#pylint: disable=protected-access
-				traceback.print_stack(sys._current_frames()[thread.ident], file=file)
-				file.write("\n")
-
-		channel = ctx.channel
-		with open(dump_file_name, "rb") as file:
-			dump_file = discord.File(file)
-			await channel.send(file=dump_file)
-
-		logger.info("FINISH THREAD DUMP")
-
-	@commands.command()
-	@commands.is_owner()
 	async def logs(self, ctx):
 		"""
 		DESCRIPTION: See Dollar's current logs
@@ -290,8 +230,9 @@ class Debugging(commands.Cog):
 			return
 
 		channel = ctx.channel
-		with open(log_file_path, "rb") as file:
-			log_file = discord.File(file, filename=log_file_name)
+		async with aiofiles.open(log_file_path, "rb") as file:
+			file_bytes = await file.read()
+			log_file = discord.File(io.BytesIO(file_bytes), filename=log_file_name)
 			await channel.send(file=log_file)
 
 	@commands.command()
@@ -312,25 +253,6 @@ class Debugging(commands.Cog):
 				logger.setLevel(level)
 
 		await ctx.send(f"Logging level set to {level}.")
-
-	@commands.command()
-	@commands.is_owner()
-	async def shutdown(self, ctx):
-		"""
-		DESCRIPTION: Shut down Dollar
-		PARAMETERS: ctx - Discord Context
-		"""
-		try:
-			logger.info("Starting shut down...")
-			await ctx.send(f"{ctx.author.mention} Dollar is shutting down...")
-
-			for task in asyncio.all_tasks():
-				task.cancel()
-				logger.debug(f"Shutdown task: {task}")
-			logger.debug("Shutting down bot (database pool will be closed in bot.close())...")
-			await self.bot.close()
-		except Exception as e:
-			logger.error(f"An error occured during shutdown {e}")
 
 
 async def setup(bot):
